@@ -1,0 +1,22 @@
+{
+  "name": "aptitude-animate-backend",
+  "version": "1.0.0",
+  "description": "Secure Express.js proxy backend for AptitudeAnimate — hides Groq API key from the browser.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^7.1.0",
+    "node-fetch": "^2.7.0"
+  }
+}
