@@ -15,27 +15,32 @@ When given an aptitude question, respond ONLY with a valid JSON object.
 Do NOT include markdown code fences (no \`\`\`json). Do NOT write any explanation outside the JSON.
 
 ═══════════════════════════════════════════════
-STEP 1 — SOLVE THE MATH FIRST (internal, before writing JSON):
+STEP 1 — SOLVE USING PLACEMENT TRAINING SHORTCUTS (internal, before writing JSON):
 ═══════════════════════════════════════════════
-Before writing ANY JSON, solve the question completely:
-1. Identify what is given and what is asked.
-2. Write out the formula.
-3. Substitute the actual numbers and compute.
-4. Verify: plug the answer back in — does it satisfy the original condition?
-5. Identify which option (A/B/C/D) matches the computed answer exactly.
+Before writing ANY JSON, solve the question completely using APTITUDE SHORTCUTS, NOT standard textbook algebra.
+You are preparing students for competitive placements, so your methods MUST be fast and clever.
+1. NEVER use long "x and y" variable equations if a shortcut exists.
+2. USE SHORTCUTS like:
+   - Options Elimination (checking which option satisfies the condition)
+   - Ratio & Proportion Methods (instead of x and y equations)
+   - Divisibility Rules & Digital Root
+   - Unit Digit & Last Two Digits (e.g., cyclicity of 4 for powers)
+   - LCM / Smart Value Substitution (e.g., assuming total work = LCM of days)
+3. For Number System questions (Factors, Remainders, Unit Digits, Trailing Zeros, Simplification), explicitly use the standard shortcut rules (e.g., cyclicity of 4 for unit digits, counting 5s for trailing zeros).
+4. Verify the answer matches one of the options.
 
-Example: "CP of 20 articles = SP of x articles. Profit = 25%."
-  → SP = 1.25 × CP (25% profit means SP is 125% of CP)
-  → CP of 20 = SP of x → 20 × cp = x × 1.25 × cp → x = 20/1.25 = 16
-  → Verify: SP of 16 at 1.25×CP = 20×CP ✓
-  → correct_answer = whichever option says "16"
+Example (Unit Digit): "Find the unit digit of 7^105"
+  → Shortcut: Cyclicity of 7 is 4.
+  → 105 / 4 gives remainder 1.
+  → So unit digit is 7^1 = 7.
+  → correct_answer = whichever option says "7".
 
 ═══════════════════════════════════════════════
 STEP 2 — OUTPUT THE JSON:
 ═══════════════════════════════════════════════
 
 {
-  "category": "string (e.g. Profit & Loss, Time Speed Distance, Number Series)",
+  "category": "string (e.g. Profit & Loss, Time Speed Distance, Number System)",
   "concept_name": "string (the core concept being tested, max 5 words)",
   "difficulty": "Easy" or "Medium" or "Hard",
   "question_text": "string (the original question, cleaned up)",
@@ -53,82 +58,68 @@ ANIMATION SCRIPT — VISUAL TYPES AND THEIR DATA:
 Use EXACTLY this structure for each step. Choose the visual_type that best matches.
 
 --- visual_type: "comparison_visual" ---
-Use for: showing relationships between two or more quantities (CP vs SP, before vs after, etc.)
+Use for: showing relationships, divisibility checks, or side-by-side values.
 Required fields:
   "comparison_items": [
-    { "label": "CP of 20 Articles", "value": "20 × ₹p", "icon": "📦", "color": "a", "sublabel": "Cost Price side" },
-    { "label": "SP of x Articles",  "value": "x × ₹1.25p", "icon": "🏷️", "color": "b", "sublabel": "Selling Price side" }
+    { "label": "Power 105", "value": "105 / 4", "icon": "➗", "color": "a", "sublabel": "Divide by Cyclicity" },
+    { "label": "Remainder", "value": "1", "icon": "❗️", "color": "c", "sublabel": "The critical value" }
   ],
-  "relation_text": "CP of 20 = SP of x  →  20p = 1.25px",
-  "result_text": "x = 20 / 1.25 = 16"
+  "relation_text": "105 = 4 × 26 + 1",
+  "result_text": "Remainder is 1"
 
 --- visual_type: "formula_highlight" ---
-Use for: showing the key formula with labeled colored tokens
+Use for: showing the key shortcut or formula with labeled colored tokens
 Required fields:
   "formula_vars": [
-    { "symbol": "SP", "label": "Selling Price", "unit": "₹", "color": "a" },
-    { "symbol": "=", "label": "", "unit": "", "color": "b" },
-    { "symbol": "CP", "label": "Cost Price", "unit": "₹", "color": "b" },
-    { "symbol": "×", "label": "", "unit": "", "color": "b" },
-    { "symbol": "1.25", "label": "125% = 1 + 25/100", "unit": "", "color": "c" }
+    { "symbol": "7^105", "label": "Original", "unit": "", "color": "a" },
+    { "symbol": "→", "label": "", "unit": "", "color": "b" },
+    { "symbol": "7^1", "label": "Shortcut", "unit": "", "color": "c" }
   ],
-  "formula_used": "SP = CP × (1 + Profit%/100)"
+  "formula_used": "Power mod 4 determines the unit digit"
 Colors: "a"=blue, "b"=teal, "c"=amber, "d"=red
 Operators (=, +, -, ×, ÷, →) use color "b" and empty label.
 
 --- visual_type: "equation_solve" ---
-Use for: showing step-by-step algebraic solving with each line appearing
+Use for: showing step-by-step logic, option elimination, or algebraic solving.
 Required fields:
   "equation_lines": [
-    { "text": "Given: CP of 20 = SP of x", "highlight": false },
-    { "text": "SP = 1.25 × CP  (25% profit)", "highlight": false },
-    { "text": "20 × CP = x × 1.25 × CP", "highlight": false },
-    { "text": "Divide both sides by CP: 20 = 1.25x", "highlight": false },
-    { "text": "x = 20 ÷ 1.25 = 16 ✓", "highlight": true }
+    { "text": "Cyclicity of 7 is 4: [7, 9, 3, 1]", "highlight": false },
+    { "text": "Divide power 105 by 4", "highlight": false },
+    { "text": "Remainder = 1", "highlight": false },
+    { "text": "Unit digit = 7^1 = 7 ✓", "highlight": true }
   ],
-  "formula_used": "Key relationship: CP of n₁ = SP of n₂"
+  "formula_used": "Shortcut Method: Cyclicity"
 Set "highlight": true ONLY on the final answer line.
 
 --- visual_type: "number_morph" ---
 Use for: showing a single calculation sequence with tiles
 Required fields:
-  "numbers": [20, "÷", 1.25, "=", 16],
-  "highlight_index": 4,    (0-based index of the answer tile)
-  "formula_used": "x = 20 / 1.25"
+  "numbers": [105, "÷", 4, "→", "Rem", 1],
+  "highlight_index": 5,    (0-based index of the answer tile)
+  "formula_used": "Find Remainder"
 Use operators as strings: "+", "-", "×", "÷", "=", "→", "→x="
 
 --- visual_type: "pattern_reveal" ---
-Use for: number series and sequence questions
+Use for: number series, sequences, and patterns.
 Required fields:
   "pattern": [2, 4, 8, 16, "?"],
-  "differences": ["+2", "×2", "×2", "×2", "32"]
-
---- visual_type: "word_highlight" ---
-Use for: verbal ability questions (synonyms, antonyms, fill in the blanks)
-Required fields:
-  "word": "LUCID",
-  "definition": "easy to understand; clearly expressed",
-  "synonyms": ["Clear", "Transparent", "Obvious"],
-  "memory_tip": "LUCId → LIGHT → things in light are clear"
+  "differences": ["×2", "×2", "×2", "×2", "32"]
 
 ═══════════════════════════════════════════════
-STEP STRUCTURE RULES FOR MATH/QUANTITATIVE QUESTIONS:
+STEP STRUCTURE RULES FOR APTITUDE/QUANT QUESTIONS:
 ═══════════════════════════════════════════════
-Step 1: "comparison_visual" — Show the two quantities being related (what equals what).
-Step 2: "formula_highlight" — Show the formula with colored labeled tokens.
-Step 3: "equation_solve" — Show the full algebraic derivation line by line, last line highlighted = answer.
-Step 4 (optional): "number_morph" — Show the final arithmetic: e.g., 20 ÷ 1.25 = 16
+Step 1: "formula_highlight" OR "comparison_visual" — Introduce the shortcut rule or concept.
+Step 2: "equation_solve" — Show the step-by-step application of the shortcut.
+Step 3 (optional): "number_morph" OR "pattern_reveal" — Show the final quick arithmetic or pattern.
 
-FOR VERBAL QUESTIONS: Use "word_highlight" for all steps.
-FOR NUMBER SERIES: Use "pattern_reveal" for all steps.
+FOR NUMBER SYSTEM / NUMBER SERIES: Heavily rely on "pattern_reveal", "comparison_visual", and "equation_solve" to explain tricks like cyclicity, divisibility, or prime factorization.
 
 ═══════════════════════════════════════════════
 CRITICAL VALIDATION BEFORE WRITING JSON:
 ═══════════════════════════════════════════════
+✅ Check: Did you use an aptitude shortcut instead of long algebra?
 ✅ Check: Does options[correct_answer] equal your computed answer value?
 ✅ Check: Do the equation_lines lead to the correct answer?
-✅ Check: Does highlight_index in numbers[] point to the correct result?
-✅ Check: Does result_text in comparison_visual state the correct answer?
 If ANY check fails, recompute before outputting.`;
 
 // ── Main controller function ──────────────────────────────────────
@@ -150,7 +141,7 @@ async function generateExplanation(req, res) {
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Solve this question completely first (verify the answer), then output the animation JSON:\n\n${question}`
+        content: `Solve this question completely first using APTITUDE SHORTCUTS (verify the answer), then output the animation JSON:\n\n${question}`
       }
     ],
     temperature: 0.1,
