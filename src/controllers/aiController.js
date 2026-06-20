@@ -1,14 +1,7 @@
 // src/controllers/aiController.js
 // ─────────────────────────────────────────────────────────────────
-//  The core proxy logic. This controller:
-//    1. Receives the validated user question from the route
-//    2. Builds the Groq API request with the SYSTEM PROMPT on the server
-//    3. Forwards it to Groq
-//    4. Validates and parses the response
-//    5. Sends the clean JSON back to the frontend
-//
-//  The GROQ_API_KEY is ONLY read here — it never leaves the server.
-//  The SYSTEM_PROMPT is ONLY defined here — the frontend cannot see it.
+//  The core proxy logic. Calls Groq AI and returns structured JSON
+//  for the visual animation engine.
 // ─────────────────────────────────────────────────────────────────
 
 const fetch = require('node-fetch');
@@ -16,89 +9,131 @@ const fetch = require('node-fetch');
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
 
-// ── System Prompt (lives on the server, never sent to the browser) ──
-const SYSTEM_PROMPT = `You are an expert aptitude tutor and animation scriptwriter for a visual learning app.
+// ── System Prompt ──────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are an expert aptitude tutor and animation scriptwriter for a visual learning app called AptitudeAnimate.
 When given an aptitude question, respond ONLY with a valid JSON object.
 Do NOT include markdown code fences (no \`\`\`json). Do NOT write any explanation outside the JSON.
 
-CRITICAL MATH RULES — YOU MUST FOLLOW THESE EXACTLY:
-1. ALWAYS solve the question yourself step-by-step BEFORE writing the JSON.
-2. DOUBLE CHECK your arithmetic. Verify the answer by substituting it back into the problem.
-3. The "correct_answer" field MUST point to the option that contains the mathematically verified correct value.
-4. NEVER guess. If unsure, re-derive from first principles.
-5. Example: "Cost price of 20 = Selling price of x, Profit=25%" → SP = 1.25×CP → 20×CP = x×1.25×CP → x = 20/1.25 = 16. So correct_answer is the option whose value is 16.
+═══════════════════════════════════════════════
+STEP 1 — SOLVE THE MATH FIRST (internal, before writing JSON):
+═══════════════════════════════════════════════
+Before writing ANY JSON, solve the question completely:
+1. Identify what is given and what is asked.
+2. Write out the formula.
+3. Substitute the actual numbers and compute.
+4. Verify: plug the answer back in — does it satisfy the original condition?
+5. Identify which option (A/B/C/D) matches the computed answer exactly.
 
-The JSON must follow this exact schema:
+Example: "CP of 20 articles = SP of x articles. Profit = 25%."
+  → SP = 1.25 × CP (25% profit means SP is 125% of CP)
+  → CP of 20 = SP of x → 20 × cp = x × 1.25 × cp → x = 20/1.25 = 16
+  → Verify: SP of 16 at 1.25×CP = 20×CP ✓
+  → correct_answer = whichever option says "16"
+
+═══════════════════════════════════════════════
+STEP 2 — OUTPUT THE JSON:
+═══════════════════════════════════════════════
 
 {
-  "category": "string (e.g. Time Speed Distance, Profit Loss, Number Series, Synonyms, etc.)",
-  "concept_name": "string (the core concept being tested)",
+  "category": "string (e.g. Profit & Loss, Time Speed Distance, Number Series)",
+  "concept_name": "string (the core concept being tested, max 5 words)",
   "difficulty": "Easy" or "Medium" or "Hard",
   "question_text": "string (the original question, cleaned up)",
   "options": { "A": "string", "B": "string", "C": "string", "D": "string" },
   "correct_answer": "A" or "B" or "C" or "D",
-  "animation_script": [
-    {
-      "step_number": 1,
-      "step_title": "short title for this step (max 6 words)",
-      "explanation": "clear explanation of what happens in this step (2-3 sentences)",
-      "visual_type": "formula_highlight" or "number_morph" or "story_scene" or "motion_graphic" or "word_highlight" or "pattern_reveal" or "bar_race",
-      "formula_used": "the formula used in this step as a string, or null",
-      "formula_vars": [
-        { "symbol": "SP", "label": "Selling Price", "unit": "₹", "color": "a" },
-        { "symbol": "=", "label": "", "unit": "", "color": "b" },
-        { "symbol": "1.25×CP", "label": "formula", "unit": "", "color": "c" }
-      ],
-      "numbers": [20, "×", "CP", "=", "x", "×", "1.25", "×", "CP", "→x=", 16],
-      "highlight_index": 10,
-      "analogy": "a simple real-world analogy to help understand this step, or null",
-      "duration_seconds": 4
-    }
-  ],
-  "concept_summary": "A 1-2 sentence summary of the key formula or trick to remember",
-  "follow_up_questions": [
-    {
-      "question": "a slightly varied question on the same concept",
-      "options": { "A": "string", "B": "string", "C": "string", "D": "string" },
-      "correct_answer": "A" or "B" or "C" or "D"
-    }
-  ]
+  "animation_script": [ ...3 to 4 steps... ],
+  "concept_summary": "1-2 sentence key formula or trick to remember",
+  "follow_up_questions": [{ "question": "...", "options": {...}, "correct_answer": "..." }]
 }
 
-VISUAL DATA RULES — These make the animations work. Follow exactly:
+═══════════════════════════════════════════════
+ANIMATION SCRIPT — VISUAL TYPES AND THEIR DATA:
+═══════════════════════════════════════════════
 
-For "formula_highlight" steps:
-  - ALWAYS include "formula_vars" array with symbols, labels, units and colors (a/b/c/d).
-  - Colors: "a"=blue, "b"=teal, "c"=amber, "d"=coral.
+Use EXACTLY this structure for each step. Choose the visual_type that best matches.
 
-For "number_morph" steps:
-  - ALWAYS include "numbers" array showing the calculation sequence.
-  - Use operators as strings: "+", "-", "×", "÷", "=", "→x=".
-  - Include "highlight_index" pointing to the final answer number in the array (0-based index).
-  - Example for x = 20/1.25 = 16: "numbers": [20, "÷", 1.25, "=", 16], "highlight_index": 4
+--- visual_type: "comparison_visual" ---
+Use for: showing relationships between two or more quantities (CP vs SP, before vs after, etc.)
+Required fields:
+  "comparison_items": [
+    { "label": "CP of 20 Articles", "value": "20 × ₹p", "icon": "📦", "color": "a", "sublabel": "Cost Price side" },
+    { "label": "SP of x Articles",  "value": "x × ₹1.25p", "icon": "🏷️", "color": "b", "sublabel": "Selling Price side" }
+  ],
+  "relation_text": "CP of 20 = SP of x  →  20p = 1.25px",
+  "result_text": "x = 20 / 1.25 = 16"
 
-For "pattern_reveal" steps:
-  - ALWAYS include "pattern" array with the sequence values and "?" for the missing one.
-  - ALWAYS include "differences" array showing the difference/ratio between terms.
+--- visual_type: "formula_highlight" ---
+Use for: showing the key formula with labeled colored tokens
+Required fields:
+  "formula_vars": [
+    { "symbol": "SP", "label": "Selling Price", "unit": "₹", "color": "a" },
+    { "symbol": "=", "label": "", "unit": "", "color": "b" },
+    { "symbol": "CP", "label": "Cost Price", "unit": "₹", "color": "b" },
+    { "symbol": "×", "label": "", "unit": "", "color": "b" },
+    { "symbol": "1.25", "label": "125% = 1 + 25/100", "unit": "", "color": "c" }
+  ],
+  "formula_used": "SP = CP × (1 + Profit%/100)"
+Colors: "a"=blue, "b"=teal, "c"=amber, "d"=red
+Operators (=, +, -, ×, ÷, →) use color "b" and empty label.
 
-For "word_highlight" steps:
-  - ALWAYS include "word", "definition", "synonyms" (array of strings), and "memory_tip".
+--- visual_type: "equation_solve" ---
+Use for: showing step-by-step algebraic solving with each line appearing
+Required fields:
+  "equation_lines": [
+    { "text": "Given: CP of 20 = SP of x", "highlight": false },
+    { "text": "SP = 1.25 × CP  (25% profit)", "highlight": false },
+    { "text": "20 × CP = x × 1.25 × CP", "highlight": false },
+    { "text": "Divide both sides by CP: 20 = 1.25x", "highlight": false },
+    { "text": "x = 20 ÷ 1.25 = 16 ✓", "highlight": true }
+  ],
+  "formula_used": "Key relationship: CP of n₁ = SP of n₂"
+Set "highlight": true ONLY on the final answer line.
 
-General Rules:
-- animation_script MUST have at least 3 steps and at most 4 steps.
-- Step 1: Use "formula_highlight" to show the key formula with formula_vars.
-- Step 2: Use "number_morph" to show the actual calculation with real numbers from the question.
-- Step 3+: Use "number_morph" or "motion_graphic" to show the final derivation/answer.
-- For verbal questions: use "word_highlight" for all steps.
-- For logic/sequence questions: use "pattern_reveal".
-- follow_up_questions must have exactly 1 item.
-- All JSON keys must be present. Use null for optional fields if not applicable.
-- The correct_answer MUST be one of the provided options A, B, C, or D.
-- VERIFY: after choosing correct_answer, confirm the option value matches your derived answer.`;
+--- visual_type: "number_morph" ---
+Use for: showing a single calculation sequence with tiles
+Required fields:
+  "numbers": [20, "÷", 1.25, "=", 16],
+  "highlight_index": 4,    (0-based index of the answer tile)
+  "formula_used": "x = 20 / 1.25"
+Use operators as strings: "+", "-", "×", "÷", "=", "→", "→x="
+
+--- visual_type: "pattern_reveal" ---
+Use for: number series and sequence questions
+Required fields:
+  "pattern": [2, 4, 8, 16, "?"],
+  "differences": ["+2", "×2", "×2", "×2", "32"]
+
+--- visual_type: "word_highlight" ---
+Use for: verbal ability questions (synonyms, antonyms, fill in the blanks)
+Required fields:
+  "word": "LUCID",
+  "definition": "easy to understand; clearly expressed",
+  "synonyms": ["Clear", "Transparent", "Obvious"],
+  "memory_tip": "LUCId → LIGHT → things in light are clear"
+
+═══════════════════════════════════════════════
+STEP STRUCTURE RULES FOR MATH/QUANTITATIVE QUESTIONS:
+═══════════════════════════════════════════════
+Step 1: "comparison_visual" — Show the two quantities being related (what equals what).
+Step 2: "formula_highlight" — Show the formula with colored labeled tokens.
+Step 3: "equation_solve" — Show the full algebraic derivation line by line, last line highlighted = answer.
+Step 4 (optional): "number_morph" — Show the final arithmetic: e.g., 20 ÷ 1.25 = 16
+
+FOR VERBAL QUESTIONS: Use "word_highlight" for all steps.
+FOR NUMBER SERIES: Use "pattern_reveal" for all steps.
+
+═══════════════════════════════════════════════
+CRITICAL VALIDATION BEFORE WRITING JSON:
+═══════════════════════════════════════════════
+✅ Check: Does options[correct_answer] equal your computed answer value?
+✅ Check: Do the equation_lines lead to the correct answer?
+✅ Check: Does highlight_index in numbers[] point to the correct result?
+✅ Check: Does result_text in comparison_visual state the correct answer?
+If ANY check fails, recompute before outputting.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
-  const question = req.sanitizedQuestion; // set by inputValidator middleware
+  const question = req.sanitizedQuestion;
   const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
@@ -109,71 +144,64 @@ async function generateExplanation(req, res) {
     });
   }
 
-  // ── Build the Groq request ────────────────────────────────────
   const groqRequestBody = {
     model: MODEL,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: `Solve this aptitude question step-by-step, verify your answer mathematically, then generate the animation script JSON:\n\n${question}` }
+      {
+        role: 'user',
+        content: `Solve this question completely first (verify the answer), then output the animation JSON:\n\n${question}`
+      }
     ],
-    temperature: 0.1,     // Very low temperature = deterministic, mathematically precise output
-    max_tokens: 3000,
+    temperature: 0.1,
+    max_tokens: 3500,
     top_p: 0.9,
   };
 
   let groqResponse;
   try {
-    console.log(`[GROQ] Sending request for question: "${question.substring(0, 80)}..."`);
-
+    console.log(`[GROQ] Sending request: "${question.substring(0, 80)}..."`);
     groqResponse = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`  // ← API key attached HERE, server-side only
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify(groqRequestBody)
     });
-
   } catch (networkError) {
-    console.error('[NETWORK ERROR] Could not reach Groq API:', networkError.message);
+    console.error('[NETWORK ERROR]', networkError.message);
     return res.status(502).json({
       success: false,
       error: 'Could not connect to the AI service. Please check your connection and try again.'
     });
   }
 
-  // ── Handle Groq API errors ─────────────────────────────────────
   if (!groqResponse.ok) {
     const errorBody = await groqResponse.text();
-    console.error(`[GROQ ERROR] Status: ${groqResponse.status} | Body: ${errorBody}`);
-
-    // Map specific Groq error codes to user-friendly messages
+    console.error(`[GROQ ERROR] ${groqResponse.status} | ${errorBody}`);
     const errorMessages = {
       401: 'AI service authentication failed. Please contact the administrator.',
       429: 'AI service rate limit reached. Please wait a moment and try again.',
       503: 'AI service is temporarily unavailable. Please try again shortly.',
     };
-
     return res.status(groqResponse.status).json({
       success: false,
       error: errorMessages[groqResponse.status] || 'AI service returned an error. Please try again.'
     });
   }
 
-  // ── Parse the Groq response ─────────────────────────────────────
   const groqData = await groqResponse.json();
   const rawContent = groqData?.choices?.[0]?.message?.content;
 
   if (!rawContent) {
-    console.error('[GROQ ERROR] Empty content in response:', JSON.stringify(groqData));
+    console.error('[GROQ ERROR] Empty response:', JSON.stringify(groqData));
     return res.status(500).json({
       success: false,
       error: 'AI returned an empty response. Please try again with a clearer question.'
     });
   }
 
-  // ── Clean and parse the JSON ────────────────────────────────────
-  // Strip markdown fences if the model accidentally adds them
   const cleanedContent = rawContent
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -184,44 +212,30 @@ async function generateExplanation(req, res) {
   try {
     parsedResult = JSON.parse(cleanedContent);
   } catch (parseError) {
-    console.error('[PARSE ERROR] Could not parse JSON from Groq:', cleanedContent.substring(0, 200));
+    console.error('[PARSE ERROR]', cleanedContent.substring(0, 300));
     return res.status(500).json({
       success: false,
       error: 'AI returned an unexpected format. Please try rephrasing your question.'
     });
   }
 
-  // ── Validate the parsed result has required fields ──────────────
   const requiredFields = ['category', 'concept_name', 'question_text', 'options', 'correct_answer', 'animation_script'];
   const missingFields = requiredFields.filter(f => !parsedResult[f]);
-
   if (missingFields.length > 0) {
-    console.error('[VALIDATION ERROR] Missing fields in AI response:', missingFields);
-    return res.status(500).json({
-      success: false,
-      error: 'AI response was incomplete. Please try again.'
-    });
+    console.error('[VALIDATION ERROR] Missing fields:', missingFields);
+    return res.status(500).json({ success: false, error: 'AI response was incomplete. Please try again.' });
   }
 
-  // ── Validate correct_answer is one of A, B, C, D ───────────────
   if (!['A', 'B', 'C', 'D'].includes(parsedResult.correct_answer)) {
     console.error('[VALIDATION ERROR] Invalid correct_answer:', parsedResult.correct_answer);
-    return res.status(500).json({
-      success: false,
-      error: 'AI returned an invalid answer option. Please try again.'
-    });
+    return res.status(500).json({ success: false, error: 'AI returned an invalid answer option. Please try again.' });
   }
 
-  // ── Log the answer for debugging ────────────────────────────────
   const chosenOption = parsedResult.correct_answer;
   const chosenValue = parsedResult.options?.[chosenOption];
-  console.log(`[GROQ] ✅ Success — concept: "${parsedResult.concept_name}", answer: ${chosenOption} (${chosenValue}), steps: ${parsedResult.animation_script?.length}`);
+  console.log(`[GROQ] ✅ concept: "${parsedResult.concept_name}" | answer: ${chosenOption} = ${chosenValue} | steps: ${parsedResult.animation_script?.length}`);
 
-  // ── Send back to frontend ───────────────────────────────────────
-  return res.status(200).json({
-    success: true,
-    data: parsedResult
-  });
+  return res.status(200).json({ success: true, data: parsedResult });
 }
 
 module.exports = { generateExplanation };
