@@ -15,31 +15,20 @@ When given an aptitude question, respond ONLY with a valid JSON object.
 Do NOT include markdown code fences (no \`\`\`json). Do NOT write any explanation outside the JSON.
 
 ═══════════════════════════════════════════════
-STEP 1 — SOLVE USING PLACEMENT TRAINING SHORTCUTS (internal, before writing JSON):
+STEP 1 — STRICT CHAIN OF THOUGHT (Internal Verification):
 ═══════════════════════════════════════════════
-Before writing ANY JSON, solve the question completely using APTITUDE SHORTCUTS, NOT standard textbook algebra.
-You are preparing students for competitive placements, so your methods MUST be fast and clever.
-1. NEVER use long "x and y" variable equations if a shortcut exists.
-2. USE SHORTCUTS like:
-   - Options Elimination (checking which option satisfies the condition)
-   - Ratio & Proportion Methods (instead of x and y equations)
-   - Divisibility Rules & Digital Root
-   - Unit Digit & Last Two Digits (e.g., cyclicity of 4 for powers)
-   - LCM / Smart Value Substitution (e.g., assuming total work = LCM of days)
-3. For Number System questions (Factors, Remainders, Unit Digits, Trailing Zeros, Simplification), explicitly use the standard shortcut rules (e.g., cyclicity of 4 for unit digits, counting 5s for trailing zeros).
-4. Verify the answer matches one of the options.
-
-Example (Unit Digit): "Find the unit digit of 7^105"
-  → Shortcut: Cyclicity of 7 is 4.
-  → 105 / 4 gives remainder 1.
-  → So unit digit is 7^1 = 7.
-  → correct_answer = whichever option says "7".
+To prevent hallucinating the wrong option, the VERY FIRST key in your JSON MUST BE "_thought_process".
+In this string, you must:
+1. Calculate the final numerical answer.
+2. Explicitly map your numerical answer to the correct Option A, B, C, or D.
+Example: "1056 / 23 = 45 remainder 21. 23 - 21 = 2. Option B is 3. Option A is 2. Therefore the correct option is A."
 
 ═══════════════════════════════════════════════
 STEP 2 — OUTPUT THE JSON:
 ═══════════════════════════════════════════════
 
 {
+  "_thought_process": "Your step-by-step mathematical derivation and explicit mapping to the option letter.",
   "category": "string (e.g. Profit & Loss, Time Speed Distance, Number System)",
   "concept_name": "string (the core concept being tested, max 5 words)",
   "difficulty": "Easy" or "Medium" or "Hard",
@@ -52,75 +41,54 @@ STEP 2 — OUTPUT THE JSON:
 }
 
 ═══════════════════════════════════════════════
-ANIMATION SCRIPT — VISUAL TYPES AND THEIR DATA:
+ANIMATION SCRIPT — STRICTLY VISUAL DIAGRAMS (NO SENTENCES)
 ═══════════════════════════════════════════════
-
-Use EXACTLY this structure for each step. Choose the visual_type that best matches.
+The user explicitly requested VISUAL DIAGRAMS, not text/sentences.
+You MUST build your steps using only the following highly visual components.
 
 --- visual_type: "comparison_visual" ---
-Use for: showing relationships, divisibility checks, or side-by-side values.
+Use for: Side-by-side visual cards comparing quantities, ratios, or divisibility logic.
 Required fields:
   "comparison_items": [
-    { "label": "Power 105", "value": "105 / 4", "icon": "➗", "color": "a", "sublabel": "Divide by Cyclicity" },
-    { "label": "Remainder", "value": "1", "icon": "❗️", "color": "c", "sublabel": "The critical value" }
+    { "label": "Remainder", "value": "21", "icon": "⚠️", "color": "d", "sublabel": "Current" },
+    { "label": "Divisor", "value": "23", "icon": "➗", "color": "b", "sublabel": "Target" }
   ],
-  "relation_text": "105 = 4 × 26 + 1",
-  "result_text": "Remainder is 1"
-
---- visual_type: "formula_highlight" ---
-Use for: showing the key shortcut or formula with labeled colored tokens
-Required fields:
-  "formula_vars": [
-    { "symbol": "7^105", "label": "Original", "unit": "", "color": "a" },
-    { "symbol": "→", "label": "", "unit": "", "color": "b" },
-    { "symbol": "7^1", "label": "Shortcut", "unit": "", "color": "c" }
-  ],
-  "formula_used": "Power mod 4 determines the unit digit"
-Colors: "a"=blue, "b"=teal, "c"=amber, "d"=red
-Operators (=, +, -, ×, ÷, →) use color "b" and empty label.
-
---- visual_type: "equation_solve" ---
-Use for: showing step-by-step logic, option elimination, or algebraic solving.
-Required fields:
-  "equation_lines": [
-    { "text": "Cyclicity of 7 is 4: [7, 9, 3, 1]", "highlight": false },
-    { "text": "Divide power 105 by 4", "highlight": false },
-    { "text": "Remainder = 1", "highlight": false },
-    { "text": "Unit digit = 7^1 = 7 ✓", "highlight": true }
-  ],
-  "formula_used": "Shortcut Method: Cyclicity"
-Set "highlight": true ONLY on the final answer line.
+  "relation_text": "We need 23 to be perfectly divisible",
+  "result_text": "Add (23 - 21) = 2"
 
 --- visual_type: "number_morph" ---
-Use for: showing a single calculation sequence with tiles
+Use for: Showing a math calculation dynamically with large tiles.
 Required fields:
-  "numbers": [105, "÷", 4, "→", "Rem", 1],
+  "numbers": [1056, "÷", 23, "→", "Rem", 21],
   "highlight_index": 5,    (0-based index of the answer tile)
-  "formula_used": "Find Remainder"
+  "formula_used": "Find current remainder"
 Use operators as strings: "+", "-", "×", "÷", "=", "→", "→x="
 
+--- visual_type: "formula_highlight" ---
+Use for: Showing a formula or trick with colorful floating variable boxes.
+Required fields:
+  "formula_vars": [
+    { "symbol": "Add", "label": "Needed", "unit": "", "color": "a" },
+    { "symbol": "=", "label": "", "unit": "", "color": "b" },
+    { "symbol": "Divisor", "label": "Target", "unit": "", "color": "c" },
+    { "symbol": "-", "label": "", "unit": "", "color": "b" },
+    { "symbol": "Rem", "label": "Current", "unit": "", "color": "d" }
+  ],
+  "formula_used": "Number to be added = Divisor - Remainder"
+Colors: "a"=blue, "b"=teal, "c"=amber, "d"=red
+
 --- visual_type: "pattern_reveal" ---
-Use for: number series, sequences, and patterns.
+Use for: sequences, factor grids, pattern blocks.
 Required fields:
   "pattern": [2, 4, 8, 16, "?"],
   "differences": ["×2", "×2", "×2", "×2", "32"]
 
 ═══════════════════════════════════════════════
-STEP STRUCTURE RULES FOR APTITUDE/QUANT QUESTIONS:
+RULES:
 ═══════════════════════════════════════════════
-Step 1: "formula_highlight" OR "comparison_visual" — Introduce the shortcut rule or concept.
-Step 2: "equation_solve" — Show the step-by-step application of the shortcut.
-Step 3 (optional): "number_morph" OR "pattern_reveal" — Show the final quick arithmetic or pattern.
-
-FOR NUMBER SYSTEM / NUMBER SERIES: Heavily rely on "pattern_reveal", "comparison_visual", and "equation_solve" to explain tricks like cyclicity, divisibility, or prime factorization.
-
-═══════════════════════════════════════════════
-CRITICAL VALIDATION BEFORE WRITING JSON:
-═══════════════════════════════════════════════
-✅ Check: Did you use an aptitude shortcut instead of long algebra?
-✅ Check: Does options[correct_answer] equal your computed answer value?
-✅ Check: Do the equation_lines lead to the correct answer?
-If ANY check fails, recompute before outputting.`;
+- DO NOT use text-heavy step explanations. Rely on the "comparison_visual" and "number_morph" tiles to do the talking.
+- "correct_answer" MUST exactly match the conclusion reached in your "_thought_process".
+- Double check: if option A is 2, and the math yields 2, then correct_answer="A".`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
@@ -141,7 +109,7 @@ async function generateExplanation(req, res) {
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Solve this question completely first using APTITUDE SHORTCUTS (verify the answer), then output the animation JSON:\n\n${question}`
+        content: `Solve this question visually:\n\n${question}`
       }
     ],
     temperature: 0.1,
@@ -210,6 +178,8 @@ async function generateExplanation(req, res) {
     });
   }
 
+  // Allow _thought_process in the required fields but don't strictly enforce it in case the LLM misses it, 
+  // though we strongly prompted for it. We'll just enforce the core ones.
   const requiredFields = ['category', 'concept_name', 'question_text', 'options', 'correct_answer', 'animation_script'];
   const missingFields = requiredFields.filter(f => !parsedResult[f]);
   if (missingFields.length > 0) {
@@ -224,7 +194,7 @@ async function generateExplanation(req, res) {
 
   const chosenOption = parsedResult.correct_answer;
   const chosenValue = parsedResult.options?.[chosenOption];
-  console.log(`[GROQ] ✅ concept: "${parsedResult.concept_name}" | answer: ${chosenOption} = ${chosenValue} | steps: ${parsedResult.animation_script?.length}`);
+  console.log(`[GROQ] ✅ Answer: ${chosenOption} = ${chosenValue} | Thought Process: ${parsedResult._thought_process?.substring(0, 50)}...`);
 
   return res.status(200).json({ success: true, data: parsedResult });
 }
