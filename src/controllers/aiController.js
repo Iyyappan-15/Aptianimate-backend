@@ -35,7 +35,7 @@ STEP 2 — OUTPUT THE JSON:
   "question_text": "string (the original question, cleaned up)",
   "options": { "A": "string", "B": "string", "C": "string", "D": "string" },
   "correct_answer": "A" or "B" or "C" or "D",
-  "animation_script": [ ...3 to 4 steps... ],
+  "animation_script": [ ...array of step objects, USE AS MANY STEPS AS NEEDED to show every calculation... ],
   "concept_summary": "1-2 sentence key formula or trick to remember",
   "follow_up_questions": [{ "question": "...", "options": {...}, "correct_answer": "..." }]
 }
@@ -87,7 +87,7 @@ Required fields:
 RULES:
 ═══════════════════════════════════════════════
 - DO NOT use text-heavy step explanations. Rely on the "comparison_visual" and "number_morph" tiles to do the talking.
-- NEVER SKIP INTERMEDIATE CALCULATIONS. If you use a number that is not explicitly in the question (e.g., you subtract two numbers to get '180'), you MUST create a separate step (like a number_morph) showing how that number was calculated BEFORE using it in a later step. Every single logical leap and derived number must be visualized.
+- CRITICAL RULE FOR MATH VISUALIZATION: YOU ARE STRICTLY FORBIDDEN from skipping intermediate calculations. If you derive ANY number (like 180 or 6600) from the numbers in the question, YOU MUST dedicate a full visual step to showing that exact derivation (e.g., 300 - 120 = 180) BEFORE you use that number in the next step.
 - "correct_answer" MUST exactly match the conclusion reached in your "_thought_process".
 - Double check: if option A is 2, and the math yields 2, then correct_answer="A".`;
 
