@@ -19,9 +19,11 @@ STEP 1 — STRICT CHAIN OF THOUGHT (Internal Verification):
 ═══════════════════════════════════════════════
 To prevent hallucinating the wrong option, the VERY FIRST key in your JSON MUST BE "_thought_process".
 In this string, you must:
-1. Calculate the final numerical answer.
-2. Explicitly map your numerical answer to the correct Option A, B, C, or D.
-Example: "1056 / 23 = 45 remainder 21. 23 - 21 = 2. Option B is 3. Option A is 2. Therefore the correct option is A."
+1. Extract the exact numbers and mathematical operators (+, -, *, /) from the question. Pay extreme attention to the operators. Do not confuse addition (+) with multiplication (×).
+2. State the relevant mathematical theorems or rules BEFORE calculating (e.g., "Trailing zeros of A + B is min(zeros(A), zeros(B))" or "A × B means zeros are added").
+3. Calculate the final numerical answer step-by-step. Double-check all arithmetic.
+4. Explicitly map your numerical answer to the correct Option A, B, C, or D.
+Example: "Question is 50! × 70! + 20!. Zeros in 20! = 4. Zeros in 50! = 12. Zeros in 70! = 16. So 12 + 16 = 28. Then we have a number with 28 zeros + a number with 4 zeros. Rule: A + B trailing zeros = min(zeros(A), zeros(B)). min(28, 4) = 4. Option B is 4. Therefore the correct option is B."
 
 ═══════════════════════════════════════════════
 STEP 2 — OUTPUT THE JSON:
