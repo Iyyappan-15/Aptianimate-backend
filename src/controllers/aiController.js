@@ -87,6 +87,7 @@ Required fields:
 RULES:
 ═══════════════════════════════════════════════
 - DO NOT use text-heavy step explanations. Rely on the "comparison_visual" and "number_morph" tiles to do the talking.
+- NEVER SKIP INTERMEDIATE CALCULATIONS. If you use a number that is not explicitly in the question (e.g., you subtract two numbers to get '180'), you MUST create a separate step (like a number_morph) showing how that number was calculated BEFORE using it in a later step. Every single logical leap and derived number must be visualized.
 - "correct_answer" MUST exactly match the conclusion reached in your "_thought_process".
 - Double check: if option A is 2, and the math yields 2, then correct_answer="A".`;
 
