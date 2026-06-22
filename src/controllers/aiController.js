@@ -176,6 +176,12 @@ Return ONLY valid JSON.
       "title": "",
       "visual_type": "",
       "visual": "",
+      "visual_data": {
+        "value1": 0,
+        "value2": 0,
+        "label1": "",
+        "label2": ""
+      },
       "explanation": ""
     }
   ],
