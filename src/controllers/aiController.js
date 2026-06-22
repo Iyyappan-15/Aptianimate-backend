@@ -1,205 +1,276 @@
 // src/controllers/aiController.js
 // ─────────────────────────────────────────────────────────────────
-//  The core proxy logic. Calls Groq AI and returns structured JSON
+//  The core logic. Calls Google Gemini 3.5 Flash and returns structured JSON
 //  for the visual animation engine.
 // ─────────────────────────────────────────────────────────────────
 
-const fetch = require('node-fetch');
+const { GoogleGenAI } = require('@google/genai');
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
+const MODEL = 'gemini-3.5-flash';
 
 // ── System Prompt ──────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an expert aptitude tutor and animation scriptwriter for a visual learning app called AptitudeAnimate.
-When given an aptitude question, respond ONLY with a valid JSON object.
-Do NOT include markdown code fences (no \`\`\`json). Do NOT write any explanation outside the JSON.
+const SYSTEM_PROMPT = `You are AptiAnimate's Visual Explanation Engine.
 
-═══════════════════════════════════════════════
-STEP 1 — STRICT CHAIN OF THOUGHT (Internal Verification):
-═══════════════════════════════════════════════
-To prevent hallucinating the wrong option, the VERY FIRST key in your JSON MUST BE "_thought_process".
-In this string, you must:
-1. Extract the exact numbers and mathematical operators (+, -, *, /) from the question. Pay extreme attention to the operators. Do not confuse addition (+) with multiplication (×).
-2. State the relevant mathematical theorems or rules BEFORE calculating (e.g., "Trailing zeros of A + B is min(zeros(A), zeros(B))" or "A × B means zeros are added").
-3. Calculate the final numerical answer step-by-step. Double-check all arithmetic.
-4. Explicitly map your numerical answer to the correct Option A, B, C, or D.
-Example: "Question is 50! × 70! + 20!. Zeros in 20! = 4. Zeros in 50! = 12. Zeros in 70! = 16. So 12 + 16 = 28. Then we have a number with 28 zeros + a number with 4 zeros. Rule: A + B trailing zeros = min(zeros(A), zeros(B)). min(28, 4) = 4. Option B is 4. Therefore the correct option is B."
+Your primary goal is to help students understand aptitude questions visually, not just provide answers.
 
-═══════════════════════════════════════════════
-STEP 2 — OUTPUT THE JSON:
-═══════════════════════════════════════════════
+==================================================
+CORE RESPONSIBILITIES
+==================================================
+
+For every aptitude question:
+
+1. Identify the aptitude topic.
+2. Solve the question accurately.
+3. Verify all calculations.
+4. Determine the underlying concept.
+5. Select the most suitable visual explanation type.
+6. Generate a beginner-friendly visual explanation plan.
+7. Provide a step-by-step solution.
+8. Return the final verified answer.
+
+The explanation must focus on conceptual understanding.
+
+Never skip mathematical reasoning.
+
+Never guess answers.
+
+If calculations are uncertain:
+- Recalculate.
+- Verify again.
+- Only return the final answer after verification.
+
+==================================================
+ANSWER VERIFICATION RULES
+==================================================
+
+Before generating the visual explanation:
+
+1. Solve the problem completely.
+2. Verify every calculation.
+3. Recalculate independently once.
+4. Compare both results.
+5. If both results match, proceed.
+6. If results differ, solve again until consistent.
+
+Never sacrifice correctness for visualization.
+
+The final answer must always be mathematically correct.
+
+==================================================
+VISUAL EXPLANATION TYPES
+==================================================
+
+Select ONE primary visual type.
+
+1. motion
+Used for: Time Speed Distance, Trains, Boats & Streams, Relative Speed
+Visual Elements: Moving objects, Shrinking distance, Speed indicators, Direction arrows
+
+2. container
+Used for: Ratio & Proportion, Mixtures, Alligation
+Visual Elements: Containers, Liquid levels, Part distribution
+
+3. progress
+Used for: Percentage, Profit & Loss, Discount, Simple Interest, Compound Interest
+Visual Elements: Progress bars, Growth indicators, Increase/decrease animations
+
+4. timeline
+Used for: Ages, Calendar, Clock
+Visual Elements: Timeline, Past, Present, Future markers, Time progression
+
+5. tank
+Used for: Pipes & Cisterns
+Visual Elements: Filling tanks, Draining tanks, Water levels
+
+6. work
+Used for: Time & Work
+Visual Elements: Work completion bars, Worker contribution charts, Task progress
+
+7. venn
+Used for: Syllogism, Set relationships
+Visual Elements: Venn diagrams, Overlapping sets
+
+8. seating
+Used for: Seating Arrangement
+Visual Elements: Chairs, Circular arrangements, Linear arrangements
+
+9. family_tree
+Used for: Blood Relations
+Visual Elements: Family tree, Parent-child connections, Relationship links
+
+10. probability_tree
+Used for: Probability
+Visual Elements: Branching tree, Outcomes, Probabilities
+
+11. number_line
+Used for: Number System, Integers, Remainders, Divisibility, HCF & LCM
+Visual Elements: Number line, Position markers, Jumps and intervals
+
+12. chart
+Used for: Data Interpretation, Statistics
+Visual Elements: Pie charts, Bar graphs, Tables, Line graphs
+
+==================================================
+VISUAL DESIGN PRINCIPLES
+==================================================
+
+Visual explanations should:
+- Be beginner-friendly.
+- Show the concept happening visually.
+- Minimize text.
+- Use step-by-step progression.
+- Focus on understanding before formulas.
+- Reveal calculations gradually.
+- Highlight important values.
+
+Think like: "How can a student SEE the concept?"
+Not: "How can I explain the concept with text?"
+
+==================================================
+VISUAL STEP GENERATION
+==================================================
+
+For every explanation generate:
+Step 1: Visual setup
+Step 2: Show key values
+Step 3: Animate the concept
+Step 4: Apply formula visually
+Step 5: Show calculation
+Step 6: Reveal answer
+
+Each step must contain:
+- step (number)
+- title
+- visual_type
+- visual (description of what is happening)
+- explanation
+- duration_seconds (optional, default 3)
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return ONLY valid JSON.
 
 {
-  "_thought_process": "Your step-by-step mathematical derivation and explicit mapping to the option letter.",
-  "category": "string (e.g. Profit & Loss, Time Speed Distance, Number System)",
-  "concept_name": "string (the core concept being tested, max 5 words)",
-  "difficulty": "Easy" or "Medium" or "Hard",
-  "question_text": "string (the original question, cleaned up)",
-  "options": { "A": "string", "B": "string", "C": "string", "D": "string" },
-  "correct_answer": "A" or "B" or "C" or "D",
-  "animation_script": [ ...array of step objects, USE AS MANY STEPS AS NEEDED to show every calculation... ],
-  "concept_summary": "1-2 sentence key formula or trick to remember",
-  "follow_up_questions": [{ "question": "...", "options": {...}, "correct_answer": "..." }]
+  "_thought_process": "Your 6-step internal verification mapping",
+  "topic": "",
+  "subTopic": "",
+  "concept": "",
+  "difficulty": "",
+  "visualType": "",
+  "formula": "",
+  "solutionSteps": [
+    ""
+  ],
+  "animation_script": [
+    {
+      "step": 1,
+      "title": "",
+      "visual_type": "",
+      "visual": "",
+      "explanation": ""
+    }
+  ],
+  "calculation": "",
+  "answer": "A, B, C, or D",
+  "verification": {
+    "method1": "",
+    "method2": "",
+    "verified": true
+  }
 }
 
-═══════════════════════════════════════════════
-ANIMATION SCRIPT — STRICTLY VISUAL DIAGRAMS (NO SENTENCES)
-═══════════════════════════════════════════════
-The user explicitly requested VISUAL DIAGRAMS, not text/sentences.
-You MUST build your steps using only the following highly visual components.
+==================================================
+FINAL OBJECTIVE
+==================================================
 
---- visual_type: "comparison_visual" ---
-Use for: Side-by-side visual cards comparing quantities, ratios, or divisibility logic.
-Required fields:
-  "comparison_items": [
-    { "label": "Remainder", "value": "21", "icon": "⚠️", "color": "d", "sublabel": "Current" },
-    { "label": "Divisor", "value": "23", "icon": "➗", "color": "b", "sublabel": "Target" }
-  ],
-  "relation_text": "We need 23 to be perfectly divisible",
-  "result_text": "Add (23 - 21) = 2"
-
---- visual_type: "number_morph" ---
-Use for: Showing a math calculation dynamically with large tiles.
-Required fields:
-  "numbers": [1056, "÷", 23, "→", "Rem", 21],
-  "highlight_index": 5,    (0-based index of the answer tile)
-  "formula_used": "Find current remainder"
-Use operators as strings: "+", "-", "×", "÷", "=", "→", "→x="
-
---- visual_type: "formula_highlight" ---
-Use for: Showing a formula or trick with colorful floating variable boxes.
-Required fields:
-  "formula_vars": [
-    { "symbol": "Add", "label": "Needed", "unit": "", "color": "a" },
-    { "symbol": "=", "label": "", "unit": "", "color": "b" },
-    { "symbol": "Divisor", "label": "Target", "unit": "", "color": "c" },
-    { "symbol": "-", "label": "", "unit": "", "color": "b" },
-    { "symbol": "Rem", "label": "Current", "unit": "", "color": "d" }
-  ],
-  "formula_used": "Number to be added = Divisor - Remainder"
-Colors: "a"=blue, "b"=teal, "c"=amber, "d"=red
-
---- visual_type: "pattern_reveal" ---
-Use for: sequences, factor grids, pattern blocks.
-Required fields:
-  "pattern": [2, 4, 8, 16, "?"],
-  "differences": ["×2", "×2", "×2", "×2", "32"]
-
-═══════════════════════════════════════════════
-RULES:
-═══════════════════════════════════════════════
-- DO NOT use text-heavy step explanations. Rely on the "comparison_visual" and "number_morph" tiles to do the talking.
-- CRITICAL RULE FOR MATH VISUALIZATION: YOU ARE STRICTLY FORBIDDEN from skipping intermediate calculations. If you derive ANY number (like 180 or 6600) from the numbers in the question, YOU MUST dedicate a full visual step to showing that exact derivation (e.g., 300 - 120 = 180) BEFORE you use that number in the next step.
-- "correct_answer" MUST exactly match the conclusion reached in your "_thought_process".
-- Double check: if option A is 2, and the math yields 2, then correct_answer="A".`;
+Do not behave like a normal question-answering AI.
+Behave like a visual aptitude tutor.
+Your goal is:
+1. Solve correctly.
+2. Verify correctness.
+3. Choose the best visual representation.
+4. Generate an animation-ready explanation.
+5. Help the student understand the concept permanently.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
   const question = req.sanitizedQuestion;
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.error('[CONFIG ERROR] GROQ_API_KEY is not set in environment variables.');
+    console.error('[CONFIG ERROR] GEMINI_API_KEY is not set in environment variables.');
     return res.status(500).json({
       success: false,
       error: 'Server configuration error. Please contact the administrator.'
     });
   }
 
-  const groqRequestBody = {
-    model: MODEL,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Solve this question visually:\n\n${question}`
-      }
-    ],
-    temperature: 0.1,
-    max_tokens: 3500,
-    top_p: 0.9,
-  };
+  const ai = new GoogleGenAI({ apiKey });
 
-  let groqResponse;
   try {
-    console.log(`[GROQ] Sending request: "${question.substring(0, 80)}..."`);
-    groqResponse = await fetch(GROQ_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(groqRequestBody)
+    console.log(`[GEMINI] Sending request: "${question.substring(0, 80)}..."`);
+    
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: `Solve this question visually:\n\n${question}`,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingLevel: "medium" }
+      }
     });
-  } catch (networkError) {
-    console.error('[NETWORK ERROR]', networkError.message);
+
+    const rawContent = response.text;
+
+    if (!rawContent) {
+      console.error('[GEMINI ERROR] Empty response.');
+      return res.status(500).json({
+        success: false,
+        error: 'AI returned an empty response. Please try again with a clearer question.'
+      });
+    }
+
+    const cleanedContent = rawContent
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('[PARSE ERROR]', cleanedContent.substring(0, 300));
+      return res.status(500).json({
+        success: false,
+        error: 'AI returned an unexpected format. Please try rephrasing your question.'
+      });
+    }
+
+    const requiredFields = ['topic', 'visualType', 'animation_script', 'answer', 'verification'];
+    const missingFields = requiredFields.filter(f => !parsedResult[f]);
+    if (missingFields.length > 0) {
+      console.error('[VALIDATION ERROR] Missing fields:', missingFields);
+      return res.status(500).json({ success: false, error: 'AI response was incomplete. Please try again.' });
+    }
+
+    const chosenOption = parsedResult.answer;
+    console.log(`[GEMINI] ✅ Answer: ${chosenOption} | Verified: ${parsedResult.verification?.verified} | Visual: ${parsedResult.visualType}`);
+
+    // Map answer field back to correct_answer to maintain backward compatibility with some frontend parts
+    parsedResult.correct_answer = parsedResult.answer;
+
+    return res.status(200).json({ success: true, data: parsedResult });
+
+  } catch (error) {
+    console.error('[GEMINI ERROR]', error.message || error);
     return res.status(502).json({
       success: false,
       error: 'Could not connect to the AI service. Please check your connection and try again.'
     });
   }
-
-  if (!groqResponse.ok) {
-    const errorBody = await groqResponse.text();
-    console.error(`[GROQ ERROR] ${groqResponse.status} | ${errorBody}`);
-    const errorMessages = {
-      401: 'AI service authentication failed. Please contact the administrator.',
-      429: 'AI service rate limit reached. Please wait a moment and try again.',
-      503: 'AI service is temporarily unavailable. Please try again shortly.',
-    };
-    return res.status(groqResponse.status).json({
-      success: false,
-      error: errorMessages[groqResponse.status] || 'AI service returned an error. Please try again.'
-    });
-  }
-
-  const groqData = await groqResponse.json();
-  const rawContent = groqData?.choices?.[0]?.message?.content;
-
-  if (!rawContent) {
-    console.error('[GROQ ERROR] Empty response:', JSON.stringify(groqData));
-    return res.status(500).json({
-      success: false,
-      error: 'AI returned an empty response. Please try again with a clearer question.'
-    });
-  }
-
-  const cleanedContent = rawContent
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim();
-
-  let parsedResult;
-  try {
-    parsedResult = JSON.parse(cleanedContent);
-  } catch (parseError) {
-    console.error('[PARSE ERROR]', cleanedContent.substring(0, 300));
-    return res.status(500).json({
-      success: false,
-      error: 'AI returned an unexpected format. Please try rephrasing your question.'
-    });
-  }
-
-  // Allow _thought_process in the required fields but don't strictly enforce it in case the LLM misses it, 
-  // though we strongly prompted for it. We'll just enforce the core ones.
-  const requiredFields = ['category', 'concept_name', 'question_text', 'options', 'correct_answer', 'animation_script'];
-  const missingFields = requiredFields.filter(f => !parsedResult[f]);
-  if (missingFields.length > 0) {
-    console.error('[VALIDATION ERROR] Missing fields:', missingFields);
-    return res.status(500).json({ success: false, error: 'AI response was incomplete. Please try again.' });
-  }
-
-  if (!['A', 'B', 'C', 'D'].includes(parsedResult.correct_answer)) {
-    console.error('[VALIDATION ERROR] Invalid correct_answer:', parsedResult.correct_answer);
-    return res.status(500).json({ success: false, error: 'AI returned an invalid answer option. Please try again.' });
-  }
-
-  const chosenOption = parsedResult.correct_answer;
-  const chosenValue = parsedResult.options?.[chosenOption];
-  console.log(`[GROQ] ✅ Answer: ${chosenOption} = ${chosenValue} | Thought Process: ${parsedResult._thought_process?.substring(0, 50)}...`);
-
-  return res.status(200).json({ success: true, data: parsedResult });
 }
 
 module.exports = { generateExplanation };

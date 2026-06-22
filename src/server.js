@@ -136,7 +136,7 @@ app.listen(PORT, () => {
   console.log(`║  AptitudeAnimate Backend                     ║`);
   console.log(`║  Running on http://localhost:${PORT}             ║`);
   console.log(`║  Allowed Origins: ${uniqueOrigins.length} configured           ║`);
-  console.log(`║  Groq Key: ${process.env.GROQ_API_KEY ? '✅ Loaded' : '❌ MISSING — set .env'}         ║`);
+  console.log(`║  Gemini Key: ${process.env.GEMINI_API_KEY ? '✅ Loaded' : '❌ MISSING — set .env'}         ║`);
   console.log('╚══════════════════════════════════════════════╝');
   console.log('');
   uniqueOrigins.forEach(o => console.log(`  ✅ Trusted origin: ${o}`));
