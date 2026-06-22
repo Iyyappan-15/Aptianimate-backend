@@ -160,6 +160,13 @@ Return ONLY valid JSON.
   "difficulty": "",
   "visualType": "",
   "formula": "",
+  "question_text": "The cleaned up question text",
+  "options": {
+    "A": "first option",
+    "B": "second option",
+    "C": "third option",
+    "D": "fourth option"
+  },
   "solutionSteps": [
     ""
   ],
@@ -249,7 +256,7 @@ async function generateExplanation(req, res) {
       });
     }
 
-    const requiredFields = ['topic', 'visualType', 'animation_script', 'answer', 'verification'];
+    const requiredFields = ['topic', 'visualType', 'animation_script', 'answer', 'verification', 'question_text', 'options'];
     const missingFields = requiredFields.filter(f => !parsedResult[f]);
     if (missingFields.length > 0) {
       console.error('[VALIDATION ERROR] Missing fields:', missingFields);
