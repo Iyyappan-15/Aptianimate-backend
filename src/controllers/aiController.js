@@ -218,7 +218,7 @@ async function generateExplanation(req, res) {
   try {
     console.log(`[GEMINI] Sending request for: "${question.substring(0, 80)}..."`);
     
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-2.0-flash'];
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
     let response = null;
     let lastError = null;
 
