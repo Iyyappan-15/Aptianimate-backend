@@ -6,7 +6,7 @@
 
 const { GoogleGenAI } = require('@google/genai');
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-3.5-flash';
 
 // ── System Prompt ──────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are AptiAnimate's Visual Explanation Engine.
