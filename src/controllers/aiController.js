@@ -218,15 +218,38 @@ async function generateExplanation(req, res) {
   try {
     console.log(`[GEMINI] Sending request for: "${question.substring(0, 80)}..."`);
     
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: `Solve this aptitude question visually:\n\n${question}`,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        responseMimeType: 'application/json',
-        temperature: 0.3,
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-2.0-flash'];
+    let response = null;
+    let lastError = null;
+
+    for (const currentModel of modelsToTry) {
+      try {
+        console.log(`[GEMINI] Attempting with model: ${currentModel}`);
+        response = await ai.models.generateContent({
+          model: currentModel,
+          contents: `Solve this aptitude question visually:\n\n${question}`,
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            responseMimeType: 'application/json',
+            temperature: 0.3,
+          }
+        });
+        // If we get a response, break out of the retry loop
+        if (response && response.text) {
+          console.log(`[GEMINI] Success with model: ${currentModel}`);
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`[GEMINI WARN] Model ${currentModel} failed: ${err.status || err.message}`);
+        // If it's a 503 (Overloaded) or 429 (Rate Limit), we continue to the next model.
+        // Otherwise, it might be a bad request (400), so we should still try the fallback just in case.
       }
-    });
+    }
+
+    if (!response || !response.text) {
+      throw lastError || new Error('All models failed to return a valid response.');
+    }
 
     const rawContent = response.text;
 
@@ -289,12 +312,28 @@ async function generateExplanation(req, res) {
 
   } catch (error) {
     console.error('[GEMINI CATCH ERROR]', error?.message || error);
-    if (error?.status) console.error('[GEMINI HTTP STATUS]', error.status);
-    if (error?.errorDetails) console.error('[GEMINI DETAILS]', JSON.stringify(error.errorDetails));
     
+    // Extract a clean error message from the nested Google JSON if present
+    let cleanMessage = 'Unknown error';
+    if (error?.message) {
+      try {
+        // Sometimes the message is a stringified JSON object
+        const parsedMsg = JSON.parse(error.message);
+        cleanMessage = parsedMsg.error?.message || error.message;
+      } catch (e) {
+        // If it's not JSON, just use the string directly
+        cleanMessage = error.message;
+      }
+    }
+
+    // Special handling for high demand / overloaded servers
+    if (error?.status === 503 || cleanMessage.toLowerCase().includes('high demand') || cleanMessage.toLowerCase().includes('unavailable')) {
+      cleanMessage = 'The AI is currently experiencing high demand. Please wait a few seconds and try again.';
+    }
+
     return res.status(502).json({
       success: false,
-      error: `AI service error: ${error?.message || 'Unknown error'}. Please try again in a moment.`
+      error: cleanMessage
     });
   }
 }
