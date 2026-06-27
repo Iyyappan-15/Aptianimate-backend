@@ -182,7 +182,13 @@ RULES:
 3. Use colors from question numbers: pick real values for bar heights, axis points, grid fill counts.
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
-6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.`;
+6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
+7. CRITICAL ENGINE MAPPING: You MUST choose the correct engine for the topic:
+   - Averages / Mixtures / Data -> USE 'bar_engine'
+   - Time, Speed, Distance / Trains / Work -> USE 'entity_engine'
+   - HCF & LCM / Number Systems -> USE 'node_engine' (Factor trees)
+   - Percentages / Fractions -> USE 'grid_engine'
+   - Ages / Number Series -> USE 'axis_engine'`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
