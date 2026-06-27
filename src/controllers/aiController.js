@@ -43,13 +43,23 @@ THE 6 VISUAL ENGINES — USE EXACTLY THESE NAMES
 ==================================================
 STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
-Step 1: entity_engine or bar_engine — Visualize the problem
-Step 2: axis_engine or grid_engine — Show the numbers / given data
-Step 3: formula_engine — Show the formula being used
-Step 4: node_engine or bar_engine — Break down the calculation
-Step 5: formula_engine — Substitute actual numbers into formula
-Step 6: bar_engine or axis_engine — Show the result
-Step 7: entity_engine or formula_engine — Verify the answer
+Step 1: Visualize the problem (Use the PRIMARY engine for the topic)
+Step 2: Show the given numbers (Use the PRIMARY engine for the topic)
+Step 3: Show the formula being used (Use 'formula_engine')
+Step 4: Break down the calculation (Use the PRIMARY engine for the topic)
+Step 5: Substitute numbers into formula (Use 'formula_engine')
+Step 6: Compare Options (Use 'bar_engine' or the PRIMARY engine)
+Step 7: Verify the answer (Use 'formula_engine')
+
+==================================================
+CRITICAL ENGINE MAPPING (PRIMARY ENGINE RULES)
+==================================================
+You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2, and 4:
+- Topic: Averages / Mixtures / Data => PRIMARY ENGINE MUST BE 'bar_engine'
+- Topic: HCF & LCM / Number Systems => PRIMARY ENGINE MUST BE 'node_engine' (Factor trees)
+- Topic: Time, Speed, Distance / Trains => PRIMARY ENGINE MUST BE 'entity_engine' (Moving objects)
+- Topic: Percentages / Fractions => PRIMARY ENGINE MUST BE 'grid_engine'
+- Topic: Ages / Number Series => PRIMARY ENGINE MUST BE 'axis_engine'
 
 ==================================================
 COMPLETE EXAMPLE OUTPUT — COPY THIS EXACT STRUCTURE
@@ -177,18 +187,12 @@ For question: "A train 130m long crosses a 245m bridge at 45 km/hr. Find the tim
 }
 
 RULES:
-1. Every step MUST have visual_engine (one of the 6 above) and render_data with real numbers.
-2. render_data must ALWAYS be filled with actual data from the question — never empty arrays.
-3. Use colors from question numbers: pick real values for bar heights, axis points, grid fill counts.
+1. Every step MUST have visual_engine and render_data with real numbers.
+2. render_data must ALWAYS be filled with actual data from the question.
+3. Use colors from question numbers: pick real values for bar heights, nodes, etc.
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
-6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
-7. CRITICAL ENGINE MAPPING: You MUST choose the correct engine for the topic:
-   - Averages / Mixtures / Data -> USE 'bar_engine'
-   - Time, Speed, Distance / Trains / Work -> USE 'entity_engine'
-   - HCF & LCM / Number Systems -> USE 'node_engine' (Factor trees)
-   - Percentages / Fractions -> USE 'grid_engine'
-   - Ages / Number Series -> USE 'axis_engine'`;
+6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
