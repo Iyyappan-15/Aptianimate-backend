@@ -9,104 +9,180 @@ const { GoogleGenAI } = require('@google/genai');
 const MODEL = 'gemini-3.5-flash';
 
 const SYSTEM_PROMPT = `You are AptitudeAnimate's Visual Intelligence Engine v2.0.
+Your ONLY job is to return a valid JSON object. No markdown, no explanation outside the JSON.
 
-Your task is to transform every aptitude question into an interactive visual learning experience. The goal is that a beginner should understand the concept by watching the animation, even if they don't read most of the text.
-
-==================================================
-CORE PHILOSOPHY
-==================================================
-❌ Never create: Animation -> Large paragraph -> Answer
-✅ Instead create: Visual -> Visual -> Visual -> Tiny explanation -> Final Answer
-
-- Every step must introduce exactly ONE new idea.
-- The visual is the explanation. Text only supports the animation.
-- Explain things like you are talking to a beginner. Use EXTREMELY SIMPLE English.
-- Maximum 2–3 short lines of text per step. Never explain what is already visible.
+CRITICAL PHILOSOPHY:
+- Every step MUST have a visual_engine and render_data that makes sense
+- Text is secondary. The VISUAL tells the story
+- Keep explanation to MAX 2 short sentences per step
 
 ==================================================
-VISUALIZATION LIBRARY
+THE 6 VISUAL ENGINES — USE EXACTLY THESE NAMES
 ==================================================
-You must automatically choose from these visual systems based on the topic:
-- Number System: Number Line, Prime Factor Tree, Division Machine, Modulo Circle, Factor Blocks, Colored Factors, Place Value Blocks, Digit Split
-- LCM/HCF: Multiples Timeline, Gear Synchronization, Prime Tree, Factor Merge, Jump Number Line, Euclidean Reduction
-- Percentages: 100 Grid, Progress Ring, Liquid Fill, Coins, Colored Squares, Pie Percentage
-- Ratio & Proportion: Colored Blocks, Pizza Slices, Balance Scale
-- Average: Equal Height Bars, Water Equalization, Block Transfer
-- Profit & Loss: Money Wallet, Price Tag, Shopping Cart, Arrow Profit/Loss
-- Simple/Compound Interest: Money Stack, Timeline, Growing Coins, Exponential Growth Curve
-- Time & Work: Workers, Brick Construction, Progress Bar, Water Filling
-- Pipes & Cisterns: Tank, Pipe Flow, Water Level, Leak Animation
-- Time Speed Distance: Road, Cars, Train, Clock, Distance Line
-- Probability/Combinatorics: Coins, Dice, Cards, Marbles, Spinner, Seats, Tree Diagram
-- Clocks/Calendars: Working Clock, Rotating Hands, Animated Calendar
-- Logical/Relations: Family Tree, Direction Map, Circular Table, Logic Branches, Decision Tree
+
+1. "bar_engine" — For: Averages, comparisons, quantities
+   render_data requires: { bars: [{label:"A", val:30, color:"#7C3AED"}, ...] }
+
+2. "node_engine" — For: Factor trees, HCF/LCM, family trees
+   render_data requires: { nodes: [{id:1, text:"12", level:0}, {id:2, text:"2×2×3", level:1, parentId:1}] }
+
+3. "axis_engine" — For: Number lines, sequences, timelines
+   render_data requires: { points:[{val:0,label:"Start"},{val:12,label:"LCM",highlight:true}], jumps:[{from:0,to:6,label:"+6"}] }
+
+4. "grid_engine" — For: Percentages, fractions, 100-square grids
+   render_data requires: { rows:10, cols:10, fill_count:25, label:"25%" }
+
+5. "entity_engine" — For: Moving cars/trains, workers, coins
+   render_data requires: { entities:[{type:"train",label:"60km/h",startX:5,endX:80,duration:2},{type:"car",label:"40km/h",startX:95,endX:20,duration:2}] }
+   Entity types allowed: "car", "train", "coin", "worker", "person", "box"
+
+6. "formula_engine" — For: Showing formulas, substituting numbers
+   render_data requires: { formula_vars:[{symbol:"D",label:"Distance",color:"a"},{symbol:"=",color:"op"},{symbol:"S",label:"Speed",color:"b"},{symbol:"×",color:"op"},{symbol:"T",label:"Time",color:"c"}] }
+   Colors: "a"=violet, "b"=teal, "c"=amber, "d"=coral, "op"=muted (for operators)
 
 ==================================================
-STEP STRUCTURE
+STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
-Every explanation must follow this logical flow (generate as many steps as needed, usually 6-10):
-1. Understand the problem (Visual setup)
-2. Visualize the data (Show given numbers)
-3. Identify concept (Show the math relationship)
-4. Apply formula visually (Animate formula formation)
-5. Perform calculation visually (Compute step-by-step)
-6. Verify / Shortcut (If applicable)
-7. Final Answer & Key Takeaway
+Step 1: entity_engine or bar_engine — Visualize the problem
+Step 2: axis_engine or grid_engine — Show the numbers / given data
+Step 3: formula_engine — Show the formula being used
+Step 4: node_engine or bar_engine — Break down the calculation
+Step 5: formula_engine — Substitute actual numbers into formula
+Step 6: bar_engine or axis_engine — Show the result
+Step 7: entity_engine or formula_engine — Verify the answer
 
 ==================================================
-ENGINE SELECTION (visual_engine)
+COMPLETE EXAMPLE OUTPUT — COPY THIS EXACT STRUCTURE
 ==================================================
-To render your chosen visual, you must map it to one of our 6 Super Engines:
-1. "grid_engine" (for 100 Grid, Colored Squares, Place Value, Liquid Fill)
-2. "node_engine" (for Prime Factor Tree, Family Tree, Decision Tree, Logic Branches)
-3. "axis_engine" (for Number Line, Multiples Timeline, Distance Line, Calendar)
-4. "bar_engine" (for Equal Height Bars, Difference Bars, Block Transfer, Charts)
-5. "entity_engine" (for Coins, Cars, Trains, Workers, Seats, Circular Table)
-6. "formula_engine" (for animating formulas and algebraic solving)
 
-==================================================
-OUTPUT FORMAT
-==================================================
-Return ONLY valid JSON.
+For question: "A train 130m long crosses a 245m bridge at 45 km/hr. Find the time."
+
 {
-  "_thought_process": "Brief internal verification: How can I make the learner see the concept before calculating?",
-  "topic": "Time Speed Distance",
-  "subTopic": "Relative Speed",
-  "concept": "Total Distance = Sum of Speeds × Time",
-  "difficulty": "Easy",
-  "visualization_chosen": "Road and Cars",
+  "_thought_process": "Train crosses = train length + bridge length. Total = 375m. Speed = 12.5 m/s. Time = 30s.",
+  "topic": "Trains",
+  "subTopic": "Crossing a Bridge",
+  "concept": "Time = Total Distance ÷ Speed",
+  "difficulty": "Medium",
+  "visualization_chosen": "Moving train crossing a bridge",
   "visual_engine": "entity_engine",
-  "question_text": "Cleaned question...",
-  "options": { "A": "...", "B": "..." },
+  "formula": "Time = (Train Length + Bridge Length) ÷ Speed",
+  "question_text": "A train 130m long crosses a bridge 245m long at 45 km/hr. Find the time taken.",
+  "options": { "A": "30 sec", "B": "28 sec", "C": "25 sec", "D": "32 sec" },
   "answer": "A",
   "animation_script": [
     {
       "step": 1,
-      "title": "Setup the Scene",
+      "title": "The Scene",
       "visual_engine": "entity_engine",
       "render_data": {
-        "entities": [{ "type": "car", "color": "blue", "label": "40 km/hr" }, { "type": "car", "color": "red", "label": "60 km/hr" }],
-        "distance": 200
+        "entities": [
+          { "type": "train", "label": "130m Train", "startX": 5, "endX": 70, "duration": 2.5, "delay": 0 }
+        ]
       },
-      "explanation": "Two cars are 200km apart on a road."
+      "explanation": "A 130m train is moving at 45 km/hr. It needs to cross a 245m long bridge."
     },
     {
       "step": 2,
-      "title": "The Concept",
+      "title": "Total Distance",
+      "visual_engine": "bar_engine",
+      "render_data": {
+        "bars": [
+          { "label": "Train", "val": 130, "color": "#7C3AED" },
+          { "label": "Bridge", "val": 245, "color": "#0D9488" },
+          { "label": "Total", "val": 375, "color": "#D97706", "highlight": true }
+        ]
+      },
+      "explanation": "Total distance = Train (130m) + Bridge (245m) = 375m."
+    },
+    {
+      "step": 3,
+      "title": "Convert Speed",
       "visual_engine": "formula_engine",
       "render_data": {
-        "formula_vars": [{ "symbol": "Speed", "color": "a" }, { "symbol": "×", "color": "black" }, { "symbol": "Time", "color": "b" }]
+        "formula_vars": [
+          { "symbol": "45", "label": "km/hr", "color": "a" },
+          { "symbol": "×", "color": "op" },
+          { "symbol": "5/18", "label": "convert", "color": "b" },
+          { "symbol": "=", "color": "op" },
+          { "symbol": "12.5", "label": "m/s", "color": "c" }
+        ]
       },
-      "explanation": "Since they move towards each other, their speeds add up."
+      "explanation": "Convert 45 km/hr to m/s by multiplying by 5/18 = 12.5 m/s."
+    },
+    {
+      "step": 4,
+      "title": "The Formula",
+      "visual_engine": "formula_engine",
+      "render_data": {
+        "formula_vars": [
+          { "symbol": "Time", "label": "Answer", "color": "c" },
+          { "symbol": "=", "color": "op" },
+          { "symbol": "Distance", "label": "375m", "color": "a" },
+          { "symbol": "÷", "color": "op" },
+          { "symbol": "Speed", "label": "12.5 m/s", "color": "b" }
+        ]
+      },
+      "explanation": "Time = Total Distance ÷ Speed."
+    },
+    {
+      "step": 5,
+      "title": "Calculate",
+      "visual_engine": "formula_engine",
+      "render_data": {
+        "formula_vars": [
+          { "symbol": "375", "label": "metres", "color": "a" },
+          { "symbol": "÷", "color": "op" },
+          { "symbol": "12.5", "label": "m/s", "color": "b" },
+          { "symbol": "=", "color": "op" },
+          { "symbol": "30", "label": "seconds", "color": "c" }
+        ]
+      },
+      "explanation": "375 ÷ 12.5 = 30 seconds."
+    },
+    {
+      "step": 6,
+      "title": "Compare Options",
+      "visual_engine": "bar_engine",
+      "render_data": {
+        "bars": [
+          { "label": "A: 30s", "val": 30, "color": "#10B981", "highlight": true },
+          { "label": "B: 28s", "val": 28, "color": "#6B7280" },
+          { "label": "C: 25s", "val": 25, "color": "#6B7280" },
+          { "label": "D: 32s", "val": 32, "color": "#6B7280" }
+        ]
+      },
+      "explanation": "Our answer is 30 seconds. Option A is correct!"
+    },
+    {
+      "step": 7,
+      "title": "Verify",
+      "visual_engine": "formula_engine",
+      "render_data": {
+        "formula_vars": [
+          { "symbol": "12.5", "label": "m/s", "color": "a" },
+          { "symbol": "×", "color": "op" },
+          { "symbol": "30", "label": "sec", "color": "b" },
+          { "symbol": "=", "color": "op" },
+          { "symbol": "375m", "label": "✓ Correct!", "color": "c" }
+        ]
+      },
+      "explanation": "Check: 12.5 × 30 = 375m = 130 + 245. Verified!"
     }
-    // ... continue steps following the STEP STRUCTURE
-  ]
+  ],
+  "verification": {
+    "method1": "12.5 m/s × 30s = 375m = 130 + 245 ✓",
+    "method2": "Reverse: 375 ÷ 30 = 12.5 m/s = 45 km/hr ✓",
+    "verified": true
+  }
 }
 
-CRITICAL RULES:
-- \`render_data\` is a flexible object. You must invent appropriate keys for the engine (e.g. \`grid_size\`, \`nodes\`, \`axis_points\`, \`bars\`, \`entities\`).
-- If the question has no multiple choice options, generate your own A/B/C/D options where A is the correct answer.
-- Return ONLY the raw JSON, no markdown, no extra text.`;
+RULES:
+1. Every step MUST have visual_engine (one of the 6 above) and render_data with real numbers.
+2. render_data must ALWAYS be filled with actual data from the question — never empty arrays.
+3. Use colors from question numbers: pick real values for bar heights, axis points, grid fill counts.
+4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
+5. Generate exactly 7 steps following the STEP FLOW above.
+6. If no options given, create A/B/C/D where A is correct.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
