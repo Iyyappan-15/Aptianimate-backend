@@ -182,7 +182,7 @@ RULES:
 3. Use colors from question numbers: pick real values for bar heights, axis points, grid fill counts.
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
-6. If no options given, create A/B/C/D where A is correct.`;
+6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
