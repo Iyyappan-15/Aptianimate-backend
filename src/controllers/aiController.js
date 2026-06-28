@@ -197,6 +197,7 @@ RULES:
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
   const question = req.sanitizedQuestion;
+  const imageBase64 = req.body.image || null; // optional — set for vision requests
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -210,7 +211,32 @@ async function generateExplanation(req, res) {
   const ai = new GoogleGenAI({ apiKey });
 
   try {
-    console.log(`[GEMINI] Sending request for: "${question.substring(0, 80)}..."`);
+    const isVisionRequest = !!imageBase64;
+    const mode = isVisionRequest ? 'VISION (image + text)' : 'TEXT';
+    console.log(`[GEMINI] Mode: ${mode} | Question: "${(question || '(image only)').substring(0, 60)}..."`);
+
+    // Build the contents payload
+    // TEXT-ONLY: a plain string (existing behaviour, unchanged)
+    // VISION:    a parts array — inlineData image first, then the text prompt
+    const buildContents = (model) => {
+      if (!isVisionRequest) {
+        return `Solve this aptitude question visually:\n\n${question}`;
+      }
+      // Strip the data-URL prefix ("data:image/jpeg;base64,") to get raw base64
+      const rawBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const textPrompt = question
+        ? `Extract all data from the chart/table in the image. Then solve this question step by step:\n\n${question}`
+        : `Extract all data from the chart/table in the image. Identify the question being asked and solve it step by step.`;
+      return [
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: rawBase64,
+          },
+        },
+        { text: textPrompt },
+      ];
+    };
     
     const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
     let response = null;
@@ -221,7 +247,7 @@ async function generateExplanation(req, res) {
         console.log(`[GEMINI] Attempting with model: ${currentModel}`);
         response = await ai.models.generateContent({
           model: currentModel,
-          contents: `Solve this aptitude question visually:\n\n${question}`,
+          contents: buildContents(currentModel),
           config: {
             systemInstruction: SYSTEM_PROMPT,
             responseMimeType: 'application/json',

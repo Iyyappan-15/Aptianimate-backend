@@ -76,8 +76,8 @@ app.use(cors({
   credentials: false                     // No cookies/sessions needed
 }));
 
-// 3. JSON body parser — limit payload to 10kb
-app.use(express.json({ limit: '10kb' }));
+// 3. JSON body parser — limit payload to 1mb (supports compressed image Base64)
+app.use(express.json({ limit: '1mb' }));
 
 // 4. Global rate limiter — broad protection for all routes
 app.use(globalLimiter);
