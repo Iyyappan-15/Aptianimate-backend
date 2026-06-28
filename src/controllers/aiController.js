@@ -17,7 +17,7 @@ CRITICAL PHILOSOPHY:
 - Keep explanation to MAX 2 short sentences per step
 
 ==================================================
-THE 6 VISUAL ENGINES — USE EXACTLY THESE NAMES
+THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 ==================================================
 
 1. "bar_engine" — For: Averages, comparisons, quantities
@@ -40,6 +40,10 @@ THE 6 VISUAL ENGINES — USE EXACTLY THESE NAMES
    render_data requires: { formula_vars:[{symbol:"D",label:"Distance",color:"a"},{symbol:"=",color:"op"},{symbol:"S",label:"Speed",color:"b"},{symbol:"×",color:"op"},{symbol:"T",label:"Time",color:"c"}] }
    Colors: "a"=violet, "b"=teal, "c"=amber, "d"=coral, "op"=muted (for operators)
 
+7. "pie_engine" — For: Pie charts, Data Interpretation percentages/degrees
+   render_data requires: { slices: [{ label: "Rent", val: 30, color: "#7C3AED" }, { label: "Food", val: 20, color: "#1D9E75" }] }
+   Note: 'val' can be percentages (summing to 100), degrees (summing to 360), or absolute numbers.
+
 ==================================================
 STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
@@ -55,7 +59,8 @@ Step 7: Verify the answer (Use 'formula_engine')
 CRITICAL ENGINE MAPPING (PRIMARY ENGINE RULES)
 ==================================================
 You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2, and 4:
-- Topic: Averages / Mixtures / Data => PRIMARY ENGINE MUST BE 'bar_engine'
+- Topic: Averages / Mixtures => PRIMARY ENGINE MUST BE 'bar_engine'
+- Topic: Data Interpretation (Pie Charts) => PRIMARY ENGINE MUST BE 'pie_engine'
 - Topic: HCF & LCM / Number Systems => PRIMARY ENGINE MUST BE 'node_engine' (Factor trees)
 - Topic: Time, Speed, Distance / Trains => PRIMARY ENGINE MUST BE 'entity_engine' (Moving objects)
 - Topic: Percentages / Fractions => PRIMARY ENGINE MUST BE 'grid_engine'
