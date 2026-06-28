@@ -25,7 +25,13 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 
 2. "node_engine" — For: Factor trees, HCF/LCM, family trees (Blood Relations)
    render_data requires: { nodes: [{id:1, text:"A (Brother)", level:0}, {id:2, text:"B (Sister)", level:0}, {id:3, text:"C (Father)", level:0}, {id:4, text:"D", level:1, parentId:3}] }
-   CRITICAL: For Blood Relations, you MUST include a node for EVERY person mentioned in the question. Do not skip anyone.
+
+   ★ BLOOD RELATIONS GOLDEN RULE:
+   Every step in a Blood Relations question MUST include ALL persons from the question in the nodes array.
+   NEVER remove or skip a person between steps. The full family tree is shown in step 1 and stays visible throughout.
+   Use "highlight: true" on the nodes being discussed in that step to focus attention.
+   Use "parentId" to draw lines from parent to child nodes.
+   Use level:0 for the top generation (grandparents/siblings at same level), level:1 for next generation (children), level:2 for grandchildren.
 
 3. "axis_engine" — For: Number lines, sequences, timelines
    render_data requires: { points:[{val:0,label:"Start"},{val:12,label:"LCM",highlight:true}], jumps:[{from:0,to:6,label:"+6"}] }
@@ -48,18 +54,18 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 ==================================================
 STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
-Step 1: Visualize the problem (Use the PRIMARY engine for the topic)
-Step 2: Show the given numbers/entities (Use the PRIMARY engine for the topic)
-Step 3: Show the formula being used (Use 'formula_engine'. If the topic is logical/non-math like Blood Relations, use the PRIMARY engine instead)
-Step 4: Break down the calculation/logic (Use the PRIMARY engine for the topic)
-Step 5: Substitute numbers or apply logic (Use 'formula_engine'. If logical/non-math, use PRIMARY engine)
-Step 6: Compare Options (Use 'bar_engine' or the PRIMARY engine)
-Step 7: Verify the answer (Use 'formula_engine'. If logical/non-math, use PRIMARY engine)
+Step 1: Visualize the COMPLETE problem setup (Primary engine — show ALL entities at once)
+Step 2: Highlight the first key relationship (Primary engine — keep ALL entities, highlight relevant ones)
+Step 3: Show the logical chain / formula (Primary engine or formula_engine)
+Step 4: Highlight the next key relationship (Primary engine — keep ALL entities)
+Step 5: Derive the answer relationship (Primary engine or formula_engine)
+Step 6: Compare Options (bar_engine or primary engine)
+Step 7: Final full picture with answer highlighted (Primary engine — show ALL entities, highlight answer)
 
 ==================================================
 CRITICAL ENGINE MAPPING (PRIMARY ENGINE RULES)
 ==================================================
-You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2, and 4:
+You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2, 4, and 7:
 - Topic: Averages / Mixtures => PRIMARY ENGINE MUST BE 'bar_engine'
 - Topic: Data Interpretation (Pie Charts) => PRIMARY ENGINE MUST BE 'pie_engine'
 - Topic: HCF & LCM / Number Systems => PRIMARY ENGINE MUST BE 'node_engine' (Factor trees)
@@ -69,7 +75,133 @@ You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2,
 - Topic: Ages / Number Series => PRIMARY ENGINE MUST BE 'axis_engine'
 
 ==================================================
-COMPLETE EXAMPLE OUTPUT — COPY THIS EXACT STRUCTURE
+BLOOD RELATIONS — COMPLETE EXAMPLE (STUDY THIS)
+==================================================
+
+For question: "If A is the brother of B; B is the sister of C; and C is the father of D, how is D related to A?"
+
+{
+  "_thought_process": "A, B, C are siblings (same generation). C is father of D. So D is child of C. A is sibling of C. Therefore A is uncle/aunt of D. Since A is brother (male), A is D's uncle. D is A's nephew/niece.",
+  "topic": "Blood Relations",
+  "subTopic": "Family Tree",
+  "concept": "Sibling of parent = Uncle/Aunt",
+  "difficulty": "Easy",
+  "visualization_chosen": "Full family tree with all 4 members",
+  "visual_engine": "node_engine",
+  "formula": "Parent's Sibling = Uncle or Aunt",
+  "question_text": "If A is the brother of B; B is the sister of C; and C is the father of D, how is D related to A?",
+  "options": { "A": "Father", "B": "Nephew or Niece", "C": "Brother", "D": "Uncle" },
+  "answer": "B",
+  "animation_script": [
+    {
+      "step": 1,
+      "title": "The Complete Family Tree",
+      "visual_engine": "node_engine",
+      "render_data": {
+        "nodes": [
+          { "id": 1, "text": "A (Brother)", "level": 0 },
+          { "id": 2, "text": "B (Sister)", "level": 0 },
+          { "id": 3, "text": "C (Father)", "level": 0 },
+          { "id": 4, "text": "D", "level": 1, "parentId": 3 }
+        ]
+      },
+      "explanation": "Here is the full family. A, B, and C are siblings at the same level. C is the father of D, one level below."
+    },
+    {
+      "step": 2,
+      "title": "A, B, C Are Siblings",
+      "visual_engine": "node_engine",
+      "render_data": {
+        "nodes": [
+          { "id": 1, "text": "A (Brother)", "level": 0, "highlight": true },
+          { "id": 2, "text": "B (Sister)", "level": 0, "highlight": true },
+          { "id": 3, "text": "C (Sibling)", "level": 0, "highlight": true },
+          { "id": 4, "text": "D", "level": 1, "parentId": 3 }
+        ]
+      },
+      "explanation": "A is brother of B. B is sister of C. So A, B, and C are all siblings of the same generation."
+    },
+    {
+      "step": 3,
+      "title": "C is Father of D",
+      "visual_engine": "node_engine",
+      "render_data": {
+        "nodes": [
+          { "id": 1, "text": "A (Brother)", "level": 0 },
+          { "id": 2, "text": "B (Sister)", "level": 0 },
+          { "id": 3, "text": "C (Father)", "level": 0, "highlight": true },
+          { "id": 4, "text": "D (Child)", "level": 1, "parentId": 3, "highlight": true }
+        ]
+      },
+      "explanation": "C is the father of D. The line from C to D shows this parent-child relationship."
+    },
+    {
+      "step": 4,
+      "title": "A is C's Sibling",
+      "visual_engine": "node_engine",
+      "render_data": {
+        "nodes": [
+          { "id": 1, "text": "A (Brother)", "level": 0, "highlight": true },
+          { "id": 2, "text": "B (Sister)", "level": 0 },
+          { "id": 3, "text": "C (Father)", "level": 0, "highlight": true },
+          { "id": 4, "text": "D (Child)", "level": 1, "parentId": 3 }
+        ]
+      },
+      "explanation": "A is the brother of C. The sibling of a parent is an uncle or aunt."
+    },
+    {
+      "step": 5,
+      "title": "The Key Rule",
+      "visual_engine": "formula_engine",
+      "render_data": {
+        "formula_vars": [
+          { "symbol": "A", "label": "Sibling of C", "color": "a" },
+          { "symbol": "+", "color": "op" },
+          { "symbol": "C", "label": "Father of D", "color": "b" },
+          { "symbol": "=", "color": "op" },
+          { "symbol": "A", "label": "Uncle of D", "color": "c" }
+        ]
+      },
+      "explanation": "Since A is the sibling of C (D's father), A is D's Uncle. Therefore D is A's Nephew or Niece."
+    },
+    {
+      "step": 6,
+      "title": "Check the Options",
+      "visual_engine": "bar_engine",
+      "render_data": {
+        "bars": [
+          { "label": "A: Father", "val": 20, "color": "#6B7280" },
+          { "label": "B: Nephew/Niece", "val": 90, "color": "#10B981", "highlight": true },
+          { "label": "C: Brother", "val": 20, "color": "#6B7280" },
+          { "label": "D: Uncle", "val": 20, "color": "#6B7280" }
+        ]
+      },
+      "explanation": "D is related to A as Nephew or Niece. Option B is correct."
+    },
+    {
+      "step": 7,
+      "title": "Final Answer",
+      "visual_engine": "node_engine",
+      "render_data": {
+        "nodes": [
+          { "id": 1, "text": "A (Uncle)", "level": 0, "highlight": true },
+          { "id": 2, "text": "B (Sister)", "level": 0 },
+          { "id": 3, "text": "C (Father)", "level": 0 },
+          { "id": 4, "text": "D (Nephew/Niece)", "level": 1, "parentId": 3, "highlight": true }
+        ]
+      },
+      "explanation": "D is A's Nephew or Niece. A is D's Uncle. Answer: Option B."
+    }
+  ],
+  "verification": {
+    "method1": "A is sibling of C → A is uncle of D → D is nephew/niece of A ✓",
+    "method2": "C is D's father and A is C's brother → A is D's paternal uncle ✓",
+    "verified": true
+  }
+}
+
+==================================================
+COMPLETE MATH EXAMPLE — COPY THIS EXACT STRUCTURE
 ==================================================
 
 For question: "A train 130m long crosses a 245m bridge at 45 km/hr. Find the time."
@@ -199,7 +331,8 @@ RULES:
 3. Use colors from question numbers: pick real values for bar heights, nodes, etc.
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
-6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.`;
+6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
+7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.`;
 
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
