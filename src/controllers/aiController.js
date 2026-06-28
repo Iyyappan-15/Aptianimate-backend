@@ -49,12 +49,12 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
 Step 1: Visualize the problem (Use the PRIMARY engine for the topic)
-Step 2: Show the given numbers (Use the PRIMARY engine for the topic)
-Step 3: Show the formula being used (Use 'formula_engine')
-Step 4: Break down the calculation (Use the PRIMARY engine for the topic)
-Step 5: Substitute numbers into formula (Use 'formula_engine')
+Step 2: Show the given numbers/entities (Use the PRIMARY engine for the topic)
+Step 3: Show the formula being used (Use 'formula_engine'. If the topic is logical/non-math like Blood Relations, use the PRIMARY engine instead)
+Step 4: Break down the calculation/logic (Use the PRIMARY engine for the topic)
+Step 5: Substitute numbers or apply logic (Use 'formula_engine'. If logical/non-math, use PRIMARY engine)
 Step 6: Compare Options (Use 'bar_engine' or the PRIMARY engine)
-Step 7: Verify the answer (Use 'formula_engine')
+Step 7: Verify the answer (Use 'formula_engine'. If logical/non-math, use PRIMARY engine)
 
 ==================================================
 CRITICAL ENGINE MAPPING (PRIMARY ENGINE RULES)
