@@ -334,6 +334,61 @@ RULES:
 6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
 7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.`;
 
+// ── Blood Relations: guarantee ALL persons appear in every node_engine step ──
+function enforceAllPersonsInNodes(parsedResult, question) {
+  const topic = (parsedResult.topic || '').toLowerCase();
+  const isBloodRelations = topic.includes('blood') || topic.includes('relation') || topic.includes('family');
+  if (!isBloodRelations) return parsedResult;
+
+  // Extract all distinct single capital letters mentioned in the question (A, B, C, D, etc.)
+  // These represent the persons in the family tree
+  const personMatches = (question || '').match(/\b([A-Z])\b/g) || [];
+  const allPersons = [...new Set(personMatches)].sort(); // alphabetical: A, B, C, D...
+
+  if (allPersons.length === 0) return parsedResult;
+  console.log(`[ENFORCE] Blood Relations persons found in question: ${allPersons.join(', ')}`);
+
+  if (!Array.isArray(parsedResult.animation_script)) return parsedResult;
+
+  parsedResult.animation_script = parsedResult.animation_script.map((step, stepIdx) => {
+    if (step.visual_engine !== 'node_engine') return step;
+    if (!step.render_data) step.render_data = {};
+    if (!Array.isArray(step.render_data.nodes)) step.render_data.nodes = [];
+
+    const nodes = step.render_data.nodes;
+
+    // Build a map of which persons are already represented
+    const representedPersons = new Set();
+    nodes.forEach(n => {
+      const text = (n.text || '').toUpperCase();
+      allPersons.forEach(p => {
+        // Match: starts with "A ", "A(", or is exactly "A"
+        if (text === p || text.startsWith(p + ' ') || text.startsWith(p + '(') || text.startsWith(p + ' (')) {
+          representedPersons.add(p);
+        }
+      });
+    });
+
+    // Add missing persons at the FRONT of the nodes array (so they appear leftmost)
+    const missing = allPersons.filter(p => !representedPersons.has(p));
+    if (missing.length > 0) {
+      console.log(`[ENFORCE] Step ${stepIdx + 1}: Missing persons ${missing.join(', ')} — injecting nodes`);
+      const maxId = nodes.length > 0 ? Math.max(...nodes.map(n => Number(n.id) || 0)) : 0;
+      const injected = missing.map((person, i) => ({
+        id: maxId + i + 1,
+        text: person,
+        level: 0
+      }));
+      // Prepend missing persons so they appear at the start (leftmost = first person)
+      step.render_data.nodes = [...injected, ...nodes];
+    }
+
+    return step;
+  });
+
+  return parsedResult;
+}
+
 // ── Main controller function ──────────────────────────────────────
 async function generateExplanation(req, res) {
   const question = req.sanitizedQuestion;
@@ -465,6 +520,9 @@ async function generateExplanation(req, res) {
 
     // Ensure correct_answer is set
     parsedResult.correct_answer = parsedResult.answer;
+
+    // ── Post-process: guarantee all Blood Relations persons appear in every step ──
+    parsedResult = enforceAllPersonsInNodes(parsedResult, question);
 
     console.log(`[GEMINI] ✅ Success | Topic: ${parsedResult.topic} | Answer: ${parsedResult.answer} | Steps: ${parsedResult.animation_script.length} | Visual: ${parsedResult.visualType}`);
 
