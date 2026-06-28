@@ -332,7 +332,7 @@ RULES:
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
 6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
-7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.\`;
+7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.`;
 // ── Blood Relations: guarantee ALL persons appear in every node_engine step ──
 //
 // DESIGN DECISIONS:
