@@ -23,8 +23,9 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 1. "bar_engine" — For: Averages, comparisons, quantities
    render_data requires: { bars: [{label:"A", val:30, color:"#7C3AED"}, ...] }
 
-2. "node_engine" — For: Factor trees, HCF/LCM, family trees
-   render_data requires: { nodes: [{id:1, text:"12", level:0}, {id:2, text:"2×2×3", level:1, parentId:1}] }
+2. "node_engine" — For: Factor trees, HCF/LCM, family trees (Blood Relations)
+   render_data requires: { nodes: [{id:1, text:"A (Brother)", level:0}, {id:2, text:"B (Sister)", level:0}, {id:3, text:"C (Father)", level:0}, {id:4, text:"D", level:1, parentId:3}] }
+   CRITICAL: For Blood Relations, you MUST include a node for EVERY person mentioned in the question. Do not skip anyone.
 
 3. "axis_engine" — For: Number lines, sequences, timelines
    render_data requires: { points:[{val:0,label:"Start"},{val:12,label:"LCM",highlight:true}], jumps:[{from:0,to:6,label:"+6"}] }
@@ -62,6 +63,7 @@ You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2,
 - Topic: Averages / Mixtures => PRIMARY ENGINE MUST BE 'bar_engine'
 - Topic: Data Interpretation (Pie Charts) => PRIMARY ENGINE MUST BE 'pie_engine'
 - Topic: HCF & LCM / Number Systems => PRIMARY ENGINE MUST BE 'node_engine' (Factor trees)
+- Topic: Blood Relations => PRIMARY ENGINE MUST BE 'node_engine' (Family trees)
 - Topic: Time, Speed, Distance / Trains => PRIMARY ENGINE MUST BE 'entity_engine' (Moving objects)
 - Topic: Percentages / Fractions => PRIMARY ENGINE MUST BE 'grid_engine'
 - Topic: Ages / Number Series => PRIMARY ENGINE MUST BE 'axis_engine'
