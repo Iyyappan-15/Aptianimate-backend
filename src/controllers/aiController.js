@@ -51,6 +51,10 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
    render_data requires: { slices: [{ label: "Rent", val: 30, color: "#7C3AED" }, { label: "Food", val: 20, color: "#1D9E75" }] }
    Note: 'val' can be percentages (summing to 100), degrees (summing to 360), or absolute numbers.
 
+8. "direction_engine" — For: Direction Sense (North, South, East, West, Left, Right)
+   render_data requires: { path: [{x:0, y:0, label:"Start"}, {x:0, y:10, label:"10m", turn:"Right", facing:"East"}], hypotenuse: {fromX:0, fromY:0, toX:10, toY:10, label:"Distance"}, final_marker: {x:10, y:10, label:"End"} }
+   Note: Use a standard Cartesian grid where North is +y, South is -y, East is +x, West is -x. Always include the Start point at 0,0.
+
 ==================================================
 STEP FLOW — ALWAYS follow this pattern for 7 steps
 ==================================================
@@ -73,6 +77,7 @@ You MUST select the PRIMARY engine based on the topic and use it for Steps 1, 2,
 - Topic: Time, Speed, Distance / Trains => PRIMARY ENGINE MUST BE 'entity_engine' (Moving objects)
 - Topic: Percentages / Fractions => PRIMARY ENGINE MUST BE 'grid_engine'
 - Topic: Ages / Number Series => PRIMARY ENGINE MUST BE 'axis_engine'
+- Topic: Direction Sense => PRIMARY ENGINE MUST BE 'direction_engine' (GPS Navigation path)
 
 ==================================================
 BLOOD RELATIONS — COMPLETE EXAMPLE (STUDY THIS)
@@ -332,7 +337,8 @@ RULES:
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
 6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
-7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.`;
+7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.
+8. DIRECTION SENSE ONLY: If question mentions North, South, East, West, Left, Right, etc. YOU MUST use direction_engine as the primary engine (Steps 1, 2, 4, 7). All path movements MUST use an absolute (X, Y) grid coordinate system where North=+Y, South=-Y, East=+X, West=-X.`;
 // ── Blood Relations: guarantee ALL persons appear in every node_engine step ──
 //
 // DESIGN DECISIONS:
