@@ -332,21 +332,51 @@ RULES:
 4. Return ONLY raw JSON. No markdown. No code fences. No extra text outside JSON.
 5. Generate exactly 7 steps following the STEP FLOW above.
 6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
-7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.`;
-
+7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.\`;
 // ── Blood Relations: guarantee ALL persons appear in every node_engine step ──
+//
+// DESIGN DECISIONS:
+// 1. We scan ONLY the question sentence text (not MCQ options A/B/C/D)
+//    to avoid treating option labels as person names.
+// 2. We assign STABLE IDs (101, 102, 103...) to each person detected in the question.
+//    This means the same person always has the same ID across all 7 steps,
+//    preventing stepKey mismatches that cause animation resets.
+// 3. We preserve question ORDER (not alphabetical). "A is brother of B" → A=101, B=102.
+// 4. Only triggers for Blood Relations / Family Tree topics.
+//
 function enforceAllPersonsInNodes(parsedResult, question) {
   const topic = (parsedResult.topic || '').toLowerCase();
-  const isBloodRelations = topic.includes('blood') || topic.includes('relation') || topic.includes('family');
+  const isBloodRelations =
+    topic.includes('blood') || topic.includes('relation') || topic.includes('family');
   if (!isBloodRelations) return parsedResult;
 
-  // Extract all distinct single capital letters mentioned in the question (A, B, C, D, etc.)
-  // These represent the persons in the family tree
-  const personMatches = (question || '').match(/\b([A-Z])\b/g) || [];
-  const allPersons = [...new Set(personMatches)].sort(); // alphabetical: A, B, C, D...
+  // ── Step 1: Strip MCQ options from question to avoid false positives ──
+  // Remove patterns like "A. Father  B. Nephew  C. Brother  D. Uncle"
+  // or "Options: A) ... B) ..."
+  const questionOnly = (question || '')
+    .replace(/\b[A-D][.)]\s+\S.*?(?=\b[A-D][.)]|\n|$)/g, '') // Remove A. xxx B. yyy
+    .replace(/\b(options|answer|choices)[:\s].*/gi, '');       // Remove "Options: ..."
 
-  if (allPersons.length === 0) return parsedResult;
-  console.log(`[ENFORCE] Blood Relations persons found in question: ${allPersons.join(', ')}`);
+  // ── Step 2: Extract persons in question ORDER (first appearance wins) ──
+  // Match single uppercase letters that appear in a relational sentence context
+  // e.g., "A is brother of B", "B is sister of C", "C is father of D"
+  const personMatches = questionOnly.match(/\b([A-Z])\b/g) || [];
+  const seenOrder = [];
+  personMatches.forEach(p => {
+    if (!seenOrder.includes(p)) seenOrder.push(p);
+  });
+
+  if (seenOrder.length === 0) return parsedResult;
+  console.log(`[ENFORCE] Blood Relations persons (in order): ${seenOrder.join(', ')}`);
+
+  // ── Step 3: Assign STABLE IDs based on question order ──
+  // Person A → id:101, B → id:102, C → id:103, D → id:104, etc.
+  // These IDs are reserved and will never conflict with AI-generated IDs (which start at 1)
+  const STABLE_ID_BASE = 100;
+  const personStableId = {};
+  seenOrder.forEach((person, idx) => {
+    personStableId[person] = STABLE_ID_BASE + idx + 1; // 101, 102, 103...
+  });
 
   if (!Array.isArray(parsedResult.animation_script)) return parsedResult;
 
@@ -355,31 +385,48 @@ function enforceAllPersonsInNodes(parsedResult, question) {
     if (!step.render_data) step.render_data = {};
     if (!Array.isArray(step.render_data.nodes)) step.render_data.nodes = [];
 
-    const nodes = step.render_data.nodes;
+    let nodes = step.render_data.nodes;
 
-    // Build a map of which persons are already represented
-    const representedPersons = new Set();
-    nodes.forEach(n => {
-      const text = (n.text || '').toUpperCase();
-      allPersons.forEach(p => {
-        // Match: starts with "A ", "A(", or is exactly "A"
-        if (text === p || text.startsWith(p + ' ') || text.startsWith(p + '(') || text.startsWith(p + ' (')) {
-          representedPersons.add(p);
+    // ── Step 4: Normalize existing node IDs to stable IDs ──
+    // If the AI generated a node for person A (detected by text starting with "A "),
+    // replace its random ID with the stable ID so stepKey is consistent.
+    nodes = nodes.map(n => {
+      const text = (n.text || '').trim();
+      for (const [person, stableId] of Object.entries(personStableId)) {
+        if (
+          text.toUpperCase() === person ||
+          text.toUpperCase().startsWith(person + ' ') ||
+          text.toUpperCase().startsWith(person + '(') ||
+          text.toUpperCase().startsWith(person + ' (')
+        ) {
+          return { ...n, id: stableId }; // replace with stable ID
         }
-      });
+      }
+      return n;
     });
 
-    // Add missing persons at the FRONT of the nodes array (so they appear leftmost)
-    const missing = allPersons.filter(p => !representedPersons.has(p));
+    // ── Step 5: Find which persons are still missing ──
+    const representedPersons = new Set();
+    nodes.forEach(n => {
+      for (const [person, stableId] of Object.entries(personStableId)) {
+        if (n.id === stableId) {
+          representedPersons.add(person);
+          break;
+        }
+      }
+    });
+
+    const missing = seenOrder.filter(p => !representedPersons.has(p));
     if (missing.length > 0) {
-      console.log(`[ENFORCE] Step ${stepIdx + 1}: Missing persons ${missing.join(', ')} — injecting nodes`);
-      const maxId = nodes.length > 0 ? Math.max(...nodes.map(n => Number(n.id) || 0)) : 0;
-      const injected = missing.map((person, i) => ({
-        id: maxId + i + 1,
-        text: person,
+      console.log(`[ENFORCE] Step ${stepIdx + 1}: Injecting missing persons: ${missing.join(', ')}`);
+
+      // ── Step 6: Inject missing persons at FRONT in question order ──
+      // They go at level 0 (sibling/same-generation) with their stable ID.
+      const injected = missing.map(person => ({
+        id: personStableId[person],
+        text: person,  // plain label; AI will use proper label in other steps
         level: 0
       }));
-      // Prepend missing persons so they appear at the start (leftmost = first person)
       step.render_data.nodes = [...injected, ...nodes];
     }
 
