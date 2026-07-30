@@ -702,18 +702,34 @@ async function analyzeResume(req, res) {
   try {
     console.log(`[GEMINI RESUME] Analyzing resume text: ${text.length} chars`);
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: `Analyze this resume text and provide the structured interview preparation report:\n\n${text}`,
-      config: {
-        systemInstruction: RESUME_SYSTEM_PROMPT,
-        responseMimeType: 'application/json',
-        temperature: 0.2,
+    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+    let response = null;
+    let lastError = null;
+
+    for (const currentModel of modelsToTry) {
+      try {
+        console.log(`[GEMINI RESUME] Attempting with model: ${currentModel}`);
+        response = await ai.models.generateContent({
+          model: currentModel,
+          contents: `Analyze this resume text and provide the structured interview preparation report:\n\n${text}`,
+          config: {
+            systemInstruction: RESUME_SYSTEM_PROMPT,
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          }
+        });
+        if (response && response.text) {
+          console.log(`[GEMINI RESUME] Success with model: ${currentModel}`);
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`[GEMINI RESUME WARN] Model ${currentModel} failed: ${err.status || err.message}`);
       }
-    });
+    }
 
     if (!response || !response.text) {
-      throw new Error('Gemini failed to return a valid response.');
+      throw lastError || new Error('All models failed to return a valid response.');
     }
 
     const rawContent = response.text;
