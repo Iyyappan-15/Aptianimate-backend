@@ -609,4 +609,142 @@ async function generateExplanation(req, res) {
   }
 }
 
-module.exports = { generateExplanation };
+const RESUME_SYSTEM_PROMPT = `You are AptitudeAnimate's Resume Interview Preparation Engine.
+Your ONLY job is to analyze the text of a user's resume, evaluate their interview readiness, identify strengths and weaknesses, and generate personalized interview questions.
+You must output a single valid JSON object containing exactly the requested structure. Do not output any markdown formatting, explanation, or code fences (e.g. do not wrap in \`\`\`json).
+
+CRITICAL CONSTRAINTS:
+1. ONLY use information present in the resume. Never invent projects, skills, or experience.
+2. If important details are missing (e.g., project descriptions, Git links, database details), mark them as "Not Mentioned" instead of hallucinating.
+3. Weaknesses must focus ONLY on interview readiness. For each weakness, specify a severity ("Critical", "Medium", "Minor") and a highly actionable suggestion to prepare for interviews.
+4. Detected skills and projects must match the resume content exactly.
+5. Generate a set of personalized interview questions based on the candidate's projects, skills, and background.
+6. Group the questions into sections. The allowed sections are: "Programming", "Data Structures & Algorithms", "Database", "Operating Systems", "Computer Networks", "Projects", "Resume Specific", "Behavioral", "HR".
+7. For each question, provide:
+   - "id": a unique string (e.g. "resume-q-1")
+   - "difficulty": "Easy", "Medium", or "Hard"
+   - "question": string
+   - "shortAnswer": string
+   - "detailedAnswer": string
+   - "keyPoints": array of strings
+   - "commonMistakes": array of strings
+   - "followUpQuestions": array of strings
+   - "realWorldExample": string (optional/empty if not applicable)
+   - "codeExample": object with "language" (string) and "code" (string) (optional/empty if not applicable)
+   - "interviewerExpectation": string
+   - "tags": array of strings
+   - "section": string (must be one of the allowed sections)
+
+Required JSON Output Schema:
+{
+  "readinessScore": number (0-100),
+  "scoreDescription": string (one of: "Excellent", "Good", "Needs Improvement", "Needs Major Improvement"),
+  "strengths": [string],
+  "weaknesses": [
+    {
+      "weakness": string,
+      "severity": string,
+      "suggestion": string
+    }
+  ],
+  "detectedSkills": [string],
+  "detectedProjects": [
+    {
+      "name": string,
+      "technologies": [string],
+      "description": string
+    }
+  ],
+  "questions": [
+    {
+      "id": string,
+      "difficulty": string,
+      "question": string,
+      "shortAnswer": string,
+      "detailedAnswer": string,
+      "keyPoints": [string],
+      "commonMistakes": [string],
+      "followUpQuestions": [string],
+      "realWorldExample": string,
+      "codeExample": {
+        "language": string,
+        "code": string
+      },
+      "interviewerExpectation": string,
+      "tags": [string],
+      "section": string
+    }
+  ]
+}
+`;
+
+async function analyzeResume(req, res) {
+  const { text } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.error('[CONFIG ERROR] GEMINI_API_KEY is not set in environment variables.');
+    return res.status(500).json({
+      success: false,
+      error: 'Server configuration error: GEMINI_API_KEY is missing.'
+    });
+  }
+
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required field: "text" (extracted resume content).'
+    });
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  try {
+    console.log(`[GEMINI RESUME] Analyzing resume text: ${text.length} chars`);
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: `Analyze this resume text and provide the structured interview preparation report:\n\n${text}`,
+      config: {
+        systemInstruction: RESUME_SYSTEM_PROMPT,
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      }
+    });
+
+    if (!response || !response.text) {
+      throw new Error('Gemini failed to return a valid response.');
+    }
+
+    const rawContent = response.text;
+    const cleanedContent = rawContent
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+
+    const parsedResult = JSON.parse(cleanedContent);
+
+    // Validate critical fields
+    if (typeof parsedResult.readinessScore !== 'number') {
+      parsedResult.readinessScore = 70; // fallback
+    }
+    if (!parsedResult.strengths) parsedResult.strengths = [];
+    if (!parsedResult.weaknesses) parsedResult.weaknesses = [];
+    if (!parsedResult.detectedSkills) parsedResult.detectedSkills = [];
+    if (!parsedResult.detectedProjects) parsedResult.detectedProjects = [];
+    if (!parsedResult.questions) parsedResult.questions = [];
+
+    return res.status(200).json({ success: true, data: parsedResult });
+
+  } catch (error) {
+    console.error('[GEMINI RESUME ERROR]', error?.message || error);
+    return res.status(502).json({
+      success: false,
+      error: error.message || 'An error occurred while analyzing the resume.'
+    });
+  }
+}
+
+module.exports = { generateExplanation, analyzeResume };
+

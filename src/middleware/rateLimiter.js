@@ -44,4 +44,19 @@ const aiLimiter = rateLimit({
   }
 });
 
-module.exports = { globalLimiter, aiLimiter };
+// ── 3. Resume endpoint limiter (strict) ─────────────────────────
+const resumeLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage(10, 5),
+  // Custom handler for a cleaner JSON error response
+  handler: (req, res, next, options) => {
+    console.warn(`[RATE LIMIT] IP ${req.ip} hit Resume limit at ${new Date().toISOString()}`);
+    res.status(429).json(options.message);
+  }
+});
+
+module.exports = { globalLimiter, aiLimiter, resumeLimiter };
+
