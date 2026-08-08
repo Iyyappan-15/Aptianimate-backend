@@ -22,6 +22,8 @@ const { requestLogger } = require('./middleware/requestLogger');
 const aiRoutes = require('./routes/ai');
 
 const app = express();
+// Trust Render's reverse proxy so rate limiting works correctly based on client IP
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ── Trusted origins ────────────────────────────────────────────
