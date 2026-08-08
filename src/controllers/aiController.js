@@ -339,7 +339,7 @@ RULES:
 6. If no options given, generate A/B/C/D options. You MUST randomly assign the correct answer to A, B, C, or D (do NOT always use A). Ensure the "answer" field exactly matches the letter of the correct option.
 7. BLOOD RELATIONS ONLY: All 7 steps MUST use node_engine (except Step 5 which can use formula_engine, and Step 6 which MUST use bar_engine). EVERY step's nodes array MUST contain ALL persons from the question — never omit anyone.
 8. DIRECTION SENSE ONLY: If question mentions North, South, East, West, Left, Right, etc. YOU MUST use direction_engine as the primary engine (Steps 1, 2, 4, 7). All path movements MUST use an absolute (X, Y) grid coordinate system where North=+Y, South=-Y, East=+X, West=-X.
-9. FORMULA ENGINE ONLY: Every visual of type `formula_engine` MUST start with a variable or operand block (like a variable/number, e.g. color:"a", symbol:"Math"). It MUST NEVER start with an operator (such as "+", "-", "=", "×", "÷"). If adding or subtracting two values, show both: e.g. `[Math] [+] [Science] [=] [150%]`, NEVER start with the operator like `[+] [Science] [=] [150%]`.`;
+9. FORMULA ENGINE ONLY: Every visual of type 'formula_engine' MUST start with a variable or operand block (like a variable/number, e.g. color:"a", symbol:"Math"). It MUST NEVER start with an operator (such as "+", "-", "=", "×", "÷"). If adding or subtracting two values, show both: e.g. [Math] [+] [Science] [=] [150%], NEVER start with the operator like [+] [Science] [=] [150%].`;
 // ── Blood Relations: guarantee ALL persons appear in every node_engine step ──
 //
 // DESIGN DECISIONS:
