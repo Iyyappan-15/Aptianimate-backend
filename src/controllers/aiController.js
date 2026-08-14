@@ -41,7 +41,17 @@ THE 7 VISUAL ENGINES — USE EXACTLY THESE NAMES
 
 5. "entity_engine" — For: Moving cars/trains, workers, coins
    render_data requires: { entities:[{type:"train",label:"60km/h",startX:5,endX:80,duration:2},{type:"car",label:"40km/h",startX:95,endX:20,duration:2}] }
-   Entity types allowed: "car", "train", "coin", "worker", "person", "box"
+   Entity types allowed: "car", "train", "coin", "worker", "person", "box", "boat", "plane"
+   OPTIONAL fields on render_data:
+     - distance: "375m" — shows a label on the track
+     - total_distance: "375m" — shown in the info bar below track
+     - formula: "Time = Distance ÷ Speed" — shown in info bar below track
+     - info: "any note" — shown in info bar below track
+     - obstacle: {type:"pole"|"bridge"|"platform", label:"Pole", x:75} — shows an obstacle on the track
+       * Use obstacle.type="pole" for crossing a pole, obstacle.type="bridge" for crossing a bridge, obstacle.type="platform" for crossing a platform
+       * x is 0-100 (% position on track), place at 70-80 so the train has room to approach
+   DIRECTION RULE: If startX > endX the entity moves LEFT (emoji auto-flips). For two opposing trains, set train1 startX=5 endX=80 and train2 startX=95 endX=20.
+   IMPORTANT — for Crossing a Pole use exactly: entities:[{type:"train",label:"<length>m at <speed>km/h",startX:5,endX:85,duration:2.5}], obstacle:{type:"pole",label:"Pole",x:78}
 
 6. "formula_engine" — For: Showing formulas, substituting numbers
    render_data requires: { formula_vars:[{symbol:"D",label:"Distance",color:"a"},{symbol:"=",color:"op"},{symbol:"S",label:"Speed",color:"b"},{symbol:"×",color:"op"},{symbol:"T",label:"Time",color:"c"}] }
@@ -230,8 +240,11 @@ For question: "A train 130m long crosses a 245m bridge at 45 km/hr. Find the tim
       "visual_engine": "entity_engine",
       "render_data": {
         "entities": [
-          { "type": "train", "label": "130m Train", "startX": 5, "endX": 70, "duration": 2.5, "delay": 0 }
-        ]
+          { "type": "train", "label": "130m Train @ 45km/h", "startX": 5, "endX": 60, "duration": 2.5, "delay": 0 }
+        ],
+        "obstacle": { "type": "bridge", "label": "245m Bridge", "x": 72 },
+        "total_distance": "130 + 245 = 375m",
+        "formula": "Time = Total Distance ÷ Speed"
       },
       "explanation": "A 130m train is moving at 45 km/hr. It needs to cross a 245m long bridge."
     },
