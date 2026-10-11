@@ -70,6 +70,16 @@ app.use(cors({
       return callback(null, true); // ✅ Allowed
     }
 
+    // Allow Vercel production and all branch preview deployments (*.vercel.app)
+    try {
+      const url = new URL(origin);
+      if (url.hostname === 'aptianimate.vercel.app' || url.hostname.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+    } catch {
+      // ignore URL parse errors
+    }
+
     console.warn(`[CORS BLOCKED] Origin not allowed: ${origin}`);
     return callback(new Error(`CORS: Origin "${origin}" is not allowed.`), false);
   },
