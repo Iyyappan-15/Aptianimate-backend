@@ -1,12 +1,12 @@
 // src/controllers/aiController.js
 // ─────────────────────────────────────────────────────────────────
-//  The core logic. Calls Google Gemini 3.5 Flash and returns structured JSON
+//  The core logic. Calls Google Gemini 3.8 Flash (with 3.6 Flash fallback) and returns structured JSON
 //  for the visual animation engine.
 // ─────────────────────────────────────────────────────────────────
 
 const { GoogleGenAI } = require('@google/genai');
 
-const MODEL = 'gemini-3.5-flash';
+const MODEL = 'gemini-3.8-flash';
 
 const SYSTEM_PROMPT = `You are AptitudeAnimate's Visual Intelligence Engine v2.0.
 Your ONLY job is to return a valid JSON object. No markdown, no explanation outside the JSON.
@@ -500,7 +500,7 @@ async function generateExplanation(req, res) {
       ];
     };
     
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
     let response = null;
     let lastError = null;
 
@@ -716,7 +716,7 @@ async function analyzeResume(req, res) {
   try {
     console.log(`[GEMINI RESUME] Analyzing resume text: ${text.length} chars`);
     
-    const modelsToTry = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
     let response = null;
     let lastError = null;
 
