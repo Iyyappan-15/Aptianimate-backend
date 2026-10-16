@@ -500,13 +500,16 @@ async function generateExplanation(req, res) {
       ];
     };
     
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
+    // Model priority: fastest → most reliable fallback → lightest model
+    // gemini-2.0-flash is the current recommended free-tier model (not 3.8/3.6 which don't exist)
+    const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
     let response = null;
     let lastError = null;
 
-    for (const currentModel of modelsToTry) {
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
       try {
-        console.log(`[GEMINI] Attempting with model: ${currentModel}`);
+        console.log(`[GEMINI] Attempting with model: ${currentModel} (attempt ${i + 1}/${modelsToTry.length})`);
         response = await ai.models.generateContent({
           model: currentModel,
           contents: buildContents(currentModel),
@@ -516,16 +519,20 @@ async function generateExplanation(req, res) {
             temperature: 0.3,
           }
         });
-        // If we get a response, break out of the retry loop
+        // If we get a valid response, break out of the retry loop
         if (response && response.text) {
           console.log(`[GEMINI] Success with model: ${currentModel}`);
           break;
         }
       } catch (err) {
         lastError = err;
-        console.warn(`[GEMINI WARN] Model ${currentModel} failed: ${err.status || err.message}`);
-        // If it's a 503 (Overloaded) or 429 (Rate Limit), we continue to the next model.
-        // Otherwise, it might be a bad request (400), so we should still try the fallback just in case.
+        const errStatus = err.status || err.httpErrorCode || 0;
+        console.warn(`[GEMINI WARN] Model ${currentModel} failed (status ${errStatus}): ${err.message}`);
+        // On 503 (overloaded) or 429 (quota), wait 1.5s before trying the next model
+        if ((errStatus === 503 || errStatus === 429) && i < modelsToTry.length - 1) {
+          console.log(`[GEMINI] Waiting 1.5s before next model...`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
     }
 
@@ -716,13 +723,14 @@ async function analyzeResume(req, res) {
   try {
     console.log(`[GEMINI RESUME] Analyzing resume text: ${text.length} chars`);
     
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
+    const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
     let response = null;
     let lastError = null;
 
-    for (const currentModel of modelsToTry) {
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
       try {
-        console.log(`[GEMINI RESUME] Attempting with model: ${currentModel}`);
+        console.log(`[GEMINI RESUME] Attempting with model: ${currentModel} (attempt ${i + 1}/${modelsToTry.length})`);
         response = await ai.models.generateContent({
           model: currentModel,
           contents: `Analyze this resume text and provide the structured interview preparation report:\n\n${text}`,
@@ -738,7 +746,11 @@ async function analyzeResume(req, res) {
         }
       } catch (err) {
         lastError = err;
-        console.warn(`[GEMINI RESUME WARN] Model ${currentModel} failed: ${err.status || err.message}`);
+        const errStatus = err.status || err.httpErrorCode || 0;
+        console.warn(`[GEMINI RESUME WARN] Model ${currentModel} failed (status ${errStatus}): ${err.message}`);
+        if ((errStatus === 503 || errStatus === 429) && i < modelsToTry.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
     }
 
